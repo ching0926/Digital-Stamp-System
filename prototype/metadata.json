@@ -1,0 +1,6 @@
+{
+  "name": "加蚋仔集章地圖",
+  "description": "台北市加蚋仔商圈（迦納商圈）在地人文互動集章地圖，探索 5 大歷史景點、虛擬集章卡、實地掃碼集章及豐厚獎項兌換！",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

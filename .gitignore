@@ -1,0 +1,22 @@
+# Nuxt / Node
+node_modules
+.nuxt
+.output
+.data
+dist
+build
+coverage
+*.log
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+.idea
+.vscode
+
+# Local python venv (not part of this project)
+myenv/
