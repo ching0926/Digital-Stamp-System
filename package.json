@@ -9,7 +9,10 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "qrsheet": "tsx scripts/qrsheet.ts",
+    "logs": "npx vercel logs https://jiuli-hai-stamp.vercel.app",
+    "deploy": "npx vercel --prod"
   },
   "dependencies": {
     "@line/liff": "^2.26.0",

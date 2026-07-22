@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const campaign = await CampaignModel.findOne({ status: 'active' }).sort({ createdAt: -1 })
   if (!campaign) {
-    throw createError({ statusCode: 404, statusMessage: '目前沒有進行中的活動' })
+    throw createError({ statusCode: 404, message: '目前沒有進行中的活動' })
   }
 
   const [stations, rewards] = await Promise.all([

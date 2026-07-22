@@ -5,7 +5,7 @@ import { StationModel } from '../../models/Station'
 // 正式環境會 404（QR 由 P3 後台產生印製）。
 export default defineEventHandler(async () => {
   if (!import.meta.dev) {
-    throw createError({ statusCode: 404, statusMessage: 'Not found' })
+    throw createError({ statusCode: 404, message: 'Not found' })
   }
   await useMongoose()
 

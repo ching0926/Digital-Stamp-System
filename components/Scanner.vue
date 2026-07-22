@@ -20,7 +20,7 @@ const activeLoc = computed(
 )
 
 // 開發測試用的 QR tokens（正式環境端點回 404 → 空陣列）
-const devTokens = ref<{ stationId: string; name: string; token: string }[]>([])
+const devTokens = ref<{ stationId: string; name: string; token: string; geo: { lat: number; lng: number } }[]>([])
 
 async function getGeo(): Promise<{ lat: number; lng: number } | undefined> {
   if (!navigator.geolocation) return undefined
@@ -33,9 +33,10 @@ async function getGeo(): Promise<{ lat: number; lng: number } | undefined> {
   })
 }
 
-async function submitToken(token: string) {
+async function submitToken(token: string, forcedGeo?: { lat: number; lng: number }) {
   try {
-    const geo = await getGeo()
+    // 開發面板可帶入該點座標以通過圍籬；正式掃碼則用實際 GPS
+    const geo = forcedGeo ?? (await getGeo())
     const res = await campaign.collect(token, geo)
     if (res.alreadyCollected) {
       successToast.value = `提醒：您之前已經收集過「${res.stationName}」的印章囉！`
@@ -111,9 +112,9 @@ async function toggleFlashlight() {
   }
 }
 
-function tokenForActive(): string | undefined {
-  return devTokens.value.find((t) => t.stationId === activeLoc.value?.id)?.token
-}
+const activeDevToken = computed(() =>
+  devTokens.value.find((t) => t.stationId === activeLoc.value?.id) ?? null,
+)
 </script>
 
 <template>
@@ -201,8 +202,8 @@ function tokenForActive(): string | undefined {
           </div>
           <button
             class="px-4 py-2 bg-[#FF8C00] hover:bg-[#E07B00] text-white text-xs font-bold rounded-[16px] flex items-center gap-1 shrink-0 shadow-[0_4px_12px_rgba(255,140,0,0.3)] disabled:opacity-40"
-            :disabled="!tokenForActive()"
-            @click="tokenForActive() && submitToken(tokenForActive()!)"
+            :disabled="!activeDevToken"
+            @click="activeDevToken && submitToken(activeDevToken.token, activeDevToken.geo)"
           >
             <Sparkles class="w-3.5 h-3.5" />
             <span>對焦掃描</span>
@@ -222,7 +223,7 @@ function tokenForActive(): string | undefined {
               :class="campaign.isCollected(t.stationId)
                 ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/40'
                 : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5'"
-              @click="submitToken(t.token)"
+              @click="submitToken(t.token, t.geo)"
             >
               <span class="truncate">{{ t.name.replace('加蚋仔', '') }}</span>
               <span class="text-[9px] font-bold opacity-80 scale-90">{{ campaign.isCollected(t.stationId) ? '已集' : '集章' }}</span>

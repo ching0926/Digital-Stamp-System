@@ -58,8 +58,8 @@ export function getSessionUserId(event: H3Event): string | null {
 export async function requireUser(event: H3Event) {
   await useMongoose()
   const uid = getSessionUserId(event)
-  if (!uid) throw createError({ statusCode: 401, statusMessage: '尚未登入' })
+  if (!uid) throw createError({ statusCode: 401, message: '尚未登入' })
   const user = await UserModel.findById(uid)
-  if (!user) throw createError({ statusCode: 401, statusMessage: '使用者不存在' })
+  if (!user) throw createError({ statusCode: 401, message: '使用者不存在' })
   return user
 }

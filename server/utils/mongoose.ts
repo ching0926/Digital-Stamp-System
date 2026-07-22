@@ -13,7 +13,7 @@ export async function useMongoose(): Promise<typeof mongoose> {
     if (!mongodbUri) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'NUXT_MONGODB_URI is not configured',
+        message: 'NUXT_MONGODB_URI is not configured',
       })
     }
     connectPromise = mongoose.connect(mongodbUri).catch((err) => {

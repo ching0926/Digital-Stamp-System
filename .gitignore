@@ -20,3 +20,9 @@ coverage
 
 # Local python venv (not part of this project)
 myenv/
+
+.vercel
+.env*
+
+# 測試用 QR 表（含簽章 token，勿 commit）
+qr-test-sheet.html
