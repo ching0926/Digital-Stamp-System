@@ -37,10 +37,12 @@ function verifySessionToken(token: string, secret: string): string | null {
 
 export function setSessionCookie(event: H3Event, userId: string) {
   const { sessionSecret } = useRuntimeConfig()
+  // 同源 App（已無 LINE iframe）→ Lax；secure 依協定，http/區網不加 Secure 才存得住
+  const isHttps = getRequestProtocol(event) === 'https'
   setCookie(event, COOKIE_NAME, createSessionToken(userId, sessionSecret), {
     httpOnly: true,
-    sameSite: 'none', // LIFF 在 LINE 的 iframe/webview 內，需 None
-    secure: true,
+    sameSite: 'lax',
+    secure: isHttps,
     path: '/',
     maxAge: SESSION_TTL_MS / 1000,
   })
