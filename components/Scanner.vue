@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ArrowLeft, Zap, CheckCircle, Info, Sparkles, AlertCircle, XCircle } from 'lucide-vue-next'
+import jsQR from 'jsqr'
 
 const props = defineProps<{ activeScanStationId: string | null }>()
 const emit = defineEmits<{ close: [] }>()
@@ -10,15 +11,22 @@ const flashlight = ref(false)
 const successToast = ref<string | null>(null)
 const errorToast = ref<string | null>(null)
 const cameraBlocked = ref(false)
+const processing = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
 let stream: MediaStream | null = null
+
+// 即時 QR 解碼用
+let canvas: HTMLCanvasElement | null = null
+let ctx: CanvasRenderingContext2D | null = null
+let rafId = 0
+let lastDecodeAt = 0
 
 const stampable = computed(() => campaign.stampableStations)
 const activeLoc = computed(
   () => stampable.value.find((l) => l.id === props.activeScanStationId) ?? stampable.value[0],
 )
 
-// 本機測試用的 QR tokens（點擊即模擬掃描該點集章）
+// 本機測試用的 QR tokens（點擊即模擬掃描；正式站無此端點 → 空）
 const devTokens = ref<{ stationId: string; name: string; token: string; geo: { lat: number; lng: number } }[]>([])
 
 async function getGeo(): Promise<{ lat: number; lng: number } | undefined> {
@@ -33,8 +41,9 @@ async function getGeo(): Promise<{ lat: number; lng: number } | undefined> {
 }
 
 async function submitToken(token: string, forcedGeo?: { lat: number; lng: number }) {
+  if (processing.value) return // 防止重複送出（掃到多幀 / 連點）
+  processing.value = true
   try {
-    // 開發面板可帶入該點座標以通過圍籬；正式掃碼則用實際 GPS
     const geo = forcedGeo ?? (await getGeo())
     const res = await campaign.collect(token, geo)
     if (res.alreadyCollected) {
@@ -51,17 +60,43 @@ async function submitToken(token: string, forcedGeo?: { lat: number; lng: number
     const e = err as { data?: { message?: string }; statusMessage?: string }
     errorToast.value = e.data?.message ?? e.statusMessage ?? '集章失敗，請再試一次'
     setTimeout(() => (errorToast.value = null), 3000)
+    processing.value = false // 允許重掃
   }
 }
 
+// 逐幀從相機畫面解碼 QR（節流約每 200ms 一次）
+function scanFrame(ts: number) {
+  const v = videoRef.value
+  if (v && ctx && canvas && !processing.value && v.readyState >= 2 && ts - lastDecodeAt > 200) {
+    lastDecodeAt = ts
+    const w = v.videoWidth
+    const h = v.videoHeight
+    if (w && h) {
+      canvas.width = w
+      canvas.height = h
+      ctx.drawImage(v, 0, 0, w, h)
+      const img = ctx.getImageData(0, 0, w, h)
+      const code = jsQR(img.data, w, h, { inversionAttempts: 'dontInvert' })
+      if (code?.data) submitToken(code.data) // 帶實際 GPS
+    }
+  }
+  rafId = requestAnimationFrame(scanFrame)
+}
+
 onMounted(async () => {
-  // 相機預覽（best-effort）
+  // 開相機 + 啟動即時解碼（相機需 HTTPS 或 localhost）
   if (navigator.mediaDevices?.getUserMedia) {
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
       })
-      if (videoRef.value) videoRef.value.srcObject = stream
+      if (videoRef.value) {
+        videoRef.value.srcObject = stream
+        await videoRef.value.play().catch(() => {})
+      }
+      canvas = document.createElement('canvas')
+      ctx = canvas.getContext('2d', { willReadFrequently: true })
+      rafId = requestAnimationFrame(scanFrame)
     } catch {
       cameraBlocked.value = true
     }
@@ -69,7 +104,7 @@ onMounted(async () => {
     cameraBlocked.value = true
   }
 
-  // 載入本機測試 tokens
+  // 載入本機測試 tokens（正式站回 404 → 空陣列，不顯示面板）
   try {
     const data = await $fetch<{ tokens: typeof devTokens.value }>('/api/dev/tokens')
     devTokens.value = data.tokens
@@ -79,6 +114,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  cancelAnimationFrame(rafId)
   stream?.getTracks().forEach((t) => t.stop())
 })
 
@@ -145,8 +181,8 @@ const activeDevToken = computed(() =>
         <div class="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center border border-slate-800 text-gray-500 mb-4 animate-pulse">
           <Sparkles class="w-8 h-8 text-orange-400" />
         </div>
-        <p class="text-sm text-gray-300 font-bold">虛擬相機已啟動</p>
-        <p class="text-xs text-gray-500 max-w-[260px] leading-relaxed mt-2">偵測到目前處於網頁預覽環境。請用下方「測試面板」完成集章體驗！</p>
+        <p class="text-sm text-gray-300 font-bold">相機無法啟動</p>
+        <p class="text-xs text-gray-500 max-w-[260px] leading-relaxed mt-2">請確認已授權相機，且網址為 HTTPS 或 localhost（http 區網無法開相機）。</p>
       </div>
       <video v-else ref="videoRef" autoplay playsinline muted class="w-full h-full object-cover" />
 
@@ -168,7 +204,7 @@ const activeDevToken = computed(() =>
 
     <!-- 底部面板 -->
     <div class="relative z-30 px-6 pb-28 pt-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent flex flex-col gap-4">
-      <!-- 本機測試面板 -->
+      <!-- 本機測試面板（僅 dev；正式站不顯示）-->
       <template v-if="devTokens.length">
         <div class="bg-white/10 rounded-[20px] p-3.5 border border-white/5 flex items-center justify-between gap-3">
           <div class="min-w-0">

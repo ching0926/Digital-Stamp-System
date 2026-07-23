@@ -19,6 +19,8 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
     // 啟動時預先打包這些相依，避免執行期才最佳化造成整頁重載/空白
     optimizeDeps: { include: ['vue3-google-map', 'lucide-vue-next'] },
+    // 允許透過 cloudflared tunnel 的網域存取（手機 HTTPS 測試用）
+    server: { allowedHosts: ['.trycloudflare.com'] },
   },
 
   // 由 env 於執行期注入。env 對應：NUXT_MONGODB_URI, NUXT_SESSION_SECRET, NUXT_STAFF_PASSCODE …

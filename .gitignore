@@ -26,3 +26,9 @@ myenv/
 
 # 測試用 QR 表（含簽章 token，勿 commit）
 qr-test-sheet.html
+
+# cloudflared 執行檔（54MB，勿 commit）
+cloudflared.exe
+
+.vercel
+.env*

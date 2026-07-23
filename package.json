@@ -11,10 +11,13 @@
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
     "seed": "tsx scripts/seed.ts",
-    "qrsheet": "tsx scripts/qrsheet.ts"
+    "reset": "tsx scripts/reset.ts",
+    "qrsheet": "tsx scripts/qrsheet.ts",
+    "tunnel": "cloudflared.exe tunnel --url http://localhost:3000"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.9.0",
+    "jsqr": "^1.4.0",
     "lucide-vue-next": "^0.469.0",
     "mongoose": "^8.9.5",
     "nuxt": "^3.15.4",
