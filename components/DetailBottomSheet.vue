@@ -30,7 +30,7 @@ function openDirections() {
     <Transition enter-active-class="transition-transform duration-300 ease-out" enter-from-class="translate-y-full" leave-active-class="transition-transform duration-200 ease-in" leave-to-class="translate-y-full" appear>
       <div
         class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col z-50 transition-[height] duration-300"
-        :style="{ height: heightState === 'half' ? '50%' : '85%' }"
+        :style="{ height: heightState === 'half' ? '82%' : '92%' }"
       >
         <!-- 拉桿 -->
         <div class="w-full flex justify-center py-3 bg-gray-50 border-b border-gray-100 cursor-pointer shrink-0" @click="heightState = heightState === 'half' ? 'full' : 'half'">
