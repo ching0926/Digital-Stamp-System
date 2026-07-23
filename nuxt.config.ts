@@ -17,6 +17,8 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    // 啟動時預先打包這些相依，避免執行期才最佳化造成整頁重載/空白
+    optimizeDeps: { include: ['vue3-google-map', 'lucide-vue-next'] },
   },
 
   // 由 env 於執行期注入。env 對應：NUXT_MONGODB_URI, NUXT_SESSION_SECRET, NUXT_STAFF_PASSCODE …
@@ -28,6 +30,10 @@ export default defineNuxtConfig({
     // GPS 地理圍籬（型別由預設值推斷：boolean / number）
     geofenceEnforce: true,
     geofenceRadiusM: 300,
+    public: {
+      // 前端 Google Maps JavaScript API key（env: NUXT_PUBLIC_GOOGLE_MAPS_API_KEY）
+      googleMapsApiKey: '',
+    },
   },
 
   app: {

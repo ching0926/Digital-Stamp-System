@@ -1,0 +1,26 @@
+# 專案所需套件（揪裡嗨集章系統）
+#
+# 這是 Node.js 專案，實際依賴以 package.json 為準。
+# 安裝方式： npm install
+#
+# 執行環境需求
+#   Node.js >= 20.12（seed/qrsheet 使用內建 process.loadEnvFile）
+#   MongoDB（本機或 Atlas 連線字串，設於 .env 的 NUXT_MONGODB_URI）
+
+# ── 執行依賴（dependencies）──────────────────────────
+nuxt@^3.15.4              # 全端框架（Vue 3 前端 + Nitro 後端）
+vue@^3.5.13               # Vue 3
+vue-router@^4.5.0         # Nuxt 路由（Nuxt 相依）
+pinia@^2.3.1             # 前端狀態管理
+@pinia/nuxt@^0.9.0        # Pinia 的 Nuxt 模組（自動匯入 stores）
+mongoose@^8.9.5           # MongoDB ODM（資料模型、連線）
+lucide-vue-next@^0.469.0  # 圖示元件
+qrcode@^1.5.4             # 產生核銷券 / 測試用 QR code
+
+# ── 開發依賴（devDependencies）──────────────────────
+typescript@^5.8.2         # TypeScript
+vue-tsc@^2.2.0            # Vue 型別檢查（nuxt typecheck）
+tsx@^4.19.2               # 直接執行 TS 腳本（seed / qrsheet）
+tailwindcss@^4.1.14       # Tailwind CSS v4
+@tailwindcss/vite@^4.1.14 # Tailwind 的 Vite 外掛
+@types/qrcode@^1.5.5      # qrcode 型別定義

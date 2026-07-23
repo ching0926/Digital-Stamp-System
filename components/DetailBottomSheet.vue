@@ -9,17 +9,14 @@ const campaign = useCampaignStore()
 const isCollected = computed(() => campaign.isCollected(props.station.id))
 
 const heightState = ref<'half' | 'full'>('half')
-const showNavToast = ref(false)
 
 watch(() => props.station.id, () => (heightState.value = 'half'))
 
-let navTimer: ReturnType<typeof setTimeout> | undefined
-function triggerNav() {
-  showNavToast.value = true
-  clearTimeout(navTimer)
-  navTimer = setTimeout(() => (showNavToast.value = false), 3500)
+// 開啟 Google 地圖導航（用真實地址；即使 geo 為近似值也會導到對的地方）
+function openDirections() {
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(props.station.address)}`
+  window.open(url, '_blank')
 }
-onBeforeUnmount(() => clearTimeout(navTimer))
 </script>
 
 <template>
@@ -35,20 +32,6 @@ onBeforeUnmount(() => clearTimeout(navTimer))
         class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col z-50 transition-[height] duration-300"
         :style="{ height: heightState === 'half' ? '50%' : '85%' }"
       >
-        <!-- 導航提示 -->
-        <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 -translate-y-3" leave-active-class="transition duration-200" leave-to-class="opacity-0 -translate-y-3">
-          <div v-if="showNavToast" class="absolute top-12 left-4 right-4 z-50 bg-gray-950/95 text-white p-3.5 rounded-[20px] shadow-lg flex items-center gap-3 border border-white/10">
-            <div class="w-8 h-8 rounded-full bg-[#FF8C00] flex items-center justify-center shrink-0">
-              <Navigation class="w-4 h-4 text-white fill-white" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-[11px] font-extrabold text-[#FF8C00]">GPS 導航引導已啟動</p>
-              <p class="text-[10px] text-gray-200 mt-0.5 truncate leading-tight">規劃至 {{ station.name }}...</p>
-            </div>
-            <button class="text-[10px] bg-white/10 px-2.5 py-1 rounded-[8px] hover:bg-white/20 font-bold" @click="showNavToast = false">好</button>
-          </div>
-        </Transition>
-
         <!-- 拉桿 -->
         <div class="w-full flex justify-center py-3 bg-gray-50 border-b border-gray-100 cursor-pointer shrink-0" @click="heightState = heightState === 'half' ? 'full' : 'half'">
           <div class="w-12 h-1.5 bg-gray-300 rounded-full" />
@@ -74,7 +57,7 @@ onBeforeUnmount(() => clearTimeout(navTimer))
                   <span>{{ station.title }}</span>
                 </p>
               </div>
-              <button class="flex flex-col items-center justify-center p-3 bg-orange-50 hover:bg-orange-100 text-[#FF8C00] rounded-[24px]" title="導航" @click="triggerNav">
+              <button class="flex flex-col items-center justify-center p-3 bg-orange-50 hover:bg-orange-100 text-[#FF8C00] rounded-[24px] active:scale-95 transition-all" title="開啟 Google 地圖導航" @click="openDirections">
                 <Navigation class="w-5 h-5" />
                 <span class="text-[10px] font-bold mt-1">導航</span>
               </button>
