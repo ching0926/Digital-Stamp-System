@@ -5,6 +5,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-01',
   devtools: { enabled: true },
 
+  // 關閉 app manifest（本機測試不需要；避免 dev 的 #app-manifest 解析錯誤導致前端載不起來）
+  experimental: { appManifest: false },
+
   // 舊 React 原型僅供參考，排除於 Nuxt / 型別掃描之外
   ignore: ['prototype/**', 'myenv/**'],
 
@@ -16,21 +19,15 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
 
-  // Values are injected from env at runtime.
-  // Server-only secrets are top-level; client-exposed values go under `public`.
-  // env mapping: NUXT_MONGODB_URI, NUXT_SESSION_SECRET, NUXT_LINE_CHANNEL_ID, NUXT_PUBLIC_LIFF_ID
+  // 由 env 於執行期注入。env 對應：NUXT_MONGODB_URI, NUXT_SESSION_SECRET, NUXT_STAFF_PASSCODE …
   runtimeConfig: {
     mongodbUri: '',
     sessionSecret: '',
-    lineChannelId: '',
     // 商家核銷通行碼
     staffPasscode: '',
     // GPS 地理圍籬（型別由預設值推斷：boolean / number）
     geofenceEnforce: true,
     geofenceRadiusM: 300,
-    public: {
-      liffId: '',
-    },
   },
 
   app: {

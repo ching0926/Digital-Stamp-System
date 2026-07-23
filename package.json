@@ -4,18 +4,16 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
+    "dev:host": "nuxt dev --host",
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
     "seed": "tsx scripts/seed.ts",
-    "qrsheet": "tsx scripts/qrsheet.ts",
-    "logs": "npx vercel logs https://jiuli-hai-stamp.vercel.app",
-    "deploy": "npx vercel --prod"
+    "qrsheet": "tsx scripts/qrsheet.ts"
   },
   "dependencies": {
-    "@line/liff": "^2.26.0",
     "@pinia/nuxt": "^0.9.0",
     "lucide-vue-next": "^0.469.0",
     "mongoose": "^8.9.5",

@@ -4,7 +4,6 @@ import type { Station } from '~/stores/campaign'
 
 const user = useUserStore()
 const campaign = useCampaignStore()
-const liff = useLiff()
 
 type Tab = 'map' | 'card' | 'rewards'
 const activeTab = ref<Tab>('map')
@@ -34,20 +33,7 @@ function startScanning(id: string) {
 async function ensureAuth() {
   await user.fetchMe()
   if (user.isAuthenticated) return
-  if (liff.isReady() && liff.isLoggedIn()) {
-    // 已透過 LINE 登入（LINE App 內，或外部瀏覽器登入導回後）
-    const idt = liff.getIdToken()
-    if (idt) await user.loginWithIdToken(idt)
-  } else if (liff.isReady() && liff.isInClient()) {
-    liff.login() // LINE App 內尚未登入 → 自動導向
-  } else if (import.meta.dev) {
-    await user.devLogin()
-  }
-  // 外部瀏覽器且未登入 → 顯示「以 LINE 登入」按鈕（manualLogin → liff.login()）
-}
-
-function manualLogin() {
-  if (liff.isReady()) liff.login()
+  await user.login() // 本機測試：自動登入
 }
 
 onMounted(async () => {
@@ -76,15 +62,6 @@ onMounted(async () => {
     <div v-else-if="bootError" class="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
       <p class="text-sm font-bold text-gray-700">{{ bootError }}</p>
       <p class="text-xs text-gray-400">請確認目前有進行中的活動，或稍後再試。</p>
-    </div>
-
-    <!-- 未登入 -->
-    <div v-else-if="!user.isAuthenticated" class="flex-1 flex flex-col items-center justify-center gap-5 p-8 text-center">
-      <div class="text-2xl font-extrabold text-gray-800">揪裡嗨 集章</div>
-      <p class="text-xs text-gray-400 leading-relaxed max-w-xs">請透過 LINE 登入即可開始收集印章、兌換好禮。</p>
-      <button class="px-6 py-3 bg-[#06C755] text-white font-bold rounded-[20px] shadow-lg active:scale-95 transition-all" @click="manualLogin">
-        以 LINE 登入
-      </button>
     </div>
 
     <!-- 主畫面 -->

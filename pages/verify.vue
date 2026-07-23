@@ -3,8 +3,6 @@ import { ScanLine, CheckCircle2, XCircle, Settings, LogOut } from 'lucide-vue-ne
 
 useHead({ title: '商家核銷 · 揪裡嗨集章' })
 
-const liff = useLiff()
-
 const staffKey = ref('')
 const staffLabel = ref('')
 const configured = ref(false)
@@ -37,16 +35,6 @@ function resetConfig() {
   configured.value = false
   result.value = null
   errorMsg.value = ''
-}
-
-async function scan() {
-  if (!liff.isInClient()) return
-  try {
-    const r = await liff.scanCode()
-    if (r?.value) code.value = r.value.trim().toUpperCase()
-  } catch {
-    /* 取消 */
-  }
 }
 
 async function redeem() {
@@ -112,20 +100,15 @@ async function redeem() {
 
         <div class="space-y-1">
           <label class="text-[11px] font-bold text-gray-500">核銷碼</label>
-          <div class="flex gap-2">
-            <input
-              v-model="code"
-              type="text"
-              placeholder="輸入 8 碼"
-              maxlength="12"
-              class="flex-1 px-4 py-3 rounded-2xl bg-gray-50 border border-gray-200 text-lg font-mono font-bold tracking-widest uppercase focus:outline-none focus:border-[#FF8C00]"
-              @keyup.enter="redeem"
-              @input="code = code.toUpperCase()"
-            >
-            <button v-if="liff.isInClient()" class="px-4 rounded-2xl bg-gray-900 text-white flex items-center justify-center active:scale-95" title="掃碼" @click="scan">
-              <ScanLine class="w-5 h-5" />
-            </button>
-          </div>
+          <input
+            v-model="code"
+            type="text"
+            placeholder="輸入 8 碼"
+            maxlength="12"
+            class="w-full px-4 py-3 rounded-2xl bg-gray-50 border border-gray-200 text-lg font-mono font-bold tracking-widest uppercase focus:outline-none focus:border-[#FF8C00]"
+            @keyup.enter="redeem"
+            @input="code = code.toUpperCase()"
+          >
         </div>
 
         <button class="w-full py-3.5 bg-[#FF8C00] text-white font-extrabold rounded-2xl active:scale-95 transition-all disabled:opacity-50" :disabled="submitting || !code.trim()" @click="redeem">

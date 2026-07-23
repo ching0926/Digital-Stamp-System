@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 
 export interface CurrentUser {
   id: string
-  lineUserId: string
   displayName: string
   pictureUrl: string
 }
@@ -23,28 +22,11 @@ export const useUserStore = defineStore('user', {
       return user
     },
 
-    // 用 LINE idToken 登入
-    async loginWithIdToken(idToken: string) {
+    // 本機測試登入（不需授權，直接取得測試帳號）
+    async login() {
       this.loading = true
       try {
-        this.user = await $fetch<CurrentUser>('/api/auth/line', {
-          method: 'POST',
-          body: { idToken },
-        })
-        return this.user
-      } finally {
-        this.loading = false
-      }
-    },
-
-    // 開發用假登入（僅開發環境後端會接受）
-    async devLogin() {
-      this.loading = true
-      try {
-        this.user = await $fetch<CurrentUser>('/api/auth/line', {
-          method: 'POST',
-          body: { dev: true },
-        })
+        this.user = await $fetch<CurrentUser>('/api/auth/login', { method: 'POST' })
         return this.user
       } finally {
         this.loading = false

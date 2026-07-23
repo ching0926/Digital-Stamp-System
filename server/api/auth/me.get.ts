@@ -12,7 +12,6 @@ export default defineEventHandler(async (event) => {
   return {
     user: {
       id: user._id.toString(),
-      lineUserId: user.lineUserId,
       displayName: user.displayName,
       pictureUrl: user.pictureUrl,
     },

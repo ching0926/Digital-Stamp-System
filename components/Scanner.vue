@@ -5,7 +5,6 @@ const props = defineProps<{ activeScanStationId: string | null }>()
 const emit = defineEmits<{ close: [] }>()
 
 const campaign = useCampaignStore()
-const liff = useLiff()
 
 const flashlight = ref(false)
 const successToast = ref<string | null>(null)
@@ -19,7 +18,7 @@ const activeLoc = computed(
   () => stampable.value.find((l) => l.id === props.activeScanStationId) ?? stampable.value[0],
 )
 
-// 開發測試用的 QR tokens（正式環境端點回 404 → 空陣列）
+// 本機測試用的 QR tokens（點擊即模擬掃描該點集章）
 const devTokens = ref<{ stationId: string; name: string; token: string; geo: { lat: number; lng: number } }[]>([])
 
 async function getGeo(): Promise<{ lat: number; lng: number } | undefined> {
@@ -55,16 +54,6 @@ async function submitToken(token: string, forcedGeo?: { lat: number; lng: number
   }
 }
 
-// LINE 內：直接叫起原生掃碼
-async function scanWithLiff() {
-  try {
-    const result = await liff.scanCode()
-    if (result?.value) await submitToken(result.value)
-  } catch {
-    // 使用者取消或不支援，維持相機預覽 + 測試面板
-  }
-}
-
 onMounted(async () => {
   // 相機預覽（best-effort）
   if (navigator.mediaDevices?.getUserMedia) {
@@ -80,16 +69,12 @@ onMounted(async () => {
     cameraBlocked.value = true
   }
 
-  if (liff.isInClient()) {
-    scanWithLiff()
-  } else {
-    // 開發/外部瀏覽器：載入測試 tokens
-    try {
-      const data = await $fetch<{ tokens: typeof devTokens.value }>('/api/dev/tokens')
-      devTokens.value = data.tokens
-    } catch {
-      devTokens.value = []
-    }
+  // 載入本機測試 tokens
+  try {
+    const data = await $fetch<{ tokens: typeof devTokens.value }>('/api/dev/tokens')
+    devTokens.value = data.tokens
+  } catch {
+    devTokens.value = []
   }
 })
 
@@ -183,17 +168,7 @@ const activeDevToken = computed(() =>
 
     <!-- 底部面板 -->
     <div class="relative z-30 px-6 pb-28 pt-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent flex flex-col gap-4">
-      <!-- LINE 內：重新掃碼 -->
-      <button
-        v-if="liff.isInClient()"
-        class="bg-[#FF8C00] hover:bg-[#E07B00] text-white text-sm font-bold rounded-[20px] py-3.5 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(255,140,0,0.3)]"
-        @click="scanWithLiff"
-      >
-        <Sparkles class="w-4 h-4" />
-        <span>開啟掃碼</span>
-      </button>
-
-      <!-- 開發測試面板 -->
+      <!-- 本機測試面板 -->
       <template v-if="devTokens.length">
         <div class="bg-white/10 rounded-[20px] p-3.5 border border-white/5 flex items-center justify-between gap-3">
           <div class="min-w-0">
