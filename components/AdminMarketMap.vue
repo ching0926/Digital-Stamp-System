@@ -1,0 +1,108 @@
+<script setup lang="ts">
+import { Image as ImageIcon, Plus, Trash2 } from 'lucide-vue-next'
+
+const admin = useAdminStore()
+const { show: toast, showError } = useAdminToast()
+
+const uploading = ref(false)
+
+async function pickImage(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  const campaign = admin.activeCampaign
+  if (!file || !campaign) return
+
+  uploading.value = true
+  try {
+    const url = await admin.uploadImage(file)
+    await admin.updateCampaign(campaign.id, { marketMapUrl: url })
+    toast('市集平面圖已更新')
+  } catch (err) {
+    showError(err, '平面圖上傳失敗')
+  } finally {
+    uploading.value = false
+    input.value = ''
+  }
+}
+
+const confirmClear = ref(false)
+
+async function clearMap() {
+  confirmClear.value = false
+  const campaign = admin.activeCampaign
+  if (!campaign) return
+  try {
+    await admin.updateCampaign(campaign.id, { marketMapUrl: '' })
+    toast('已移除市集平面圖')
+  } catch (err) {
+    showError(err)
+  }
+}
+</script>
+
+<template>
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <h2 class="text-xl font-black tracking-tight flex items-center gap-2">
+          <ImageIcon class="w-5 h-5 text-emerald-600" />
+          市集平面圖
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">
+          上傳市集攤位配置圖。攤位在圖上的位置由各攤位的「地圖 X／Y」百分比決定。
+        </p>
+      </div>
+      <button
+        v-if="admin.activeCampaign?.marketMapUrl"
+        class="flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-500 font-bold rounded-xl text-xs transition-colors shrink-0"
+        @click="confirmClear = true"
+      >
+        <Trash2 class="w-4 h-4" />
+        移除平面圖
+      </button>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm flex justify-center">
+      <div v-if="admin.activeCampaign?.marketMapUrl" class="w-full max-w-2xl flex flex-col gap-4">
+        <div class="aspect-video rounded-2xl border border-gray-100 overflow-hidden bg-gray-50">
+          <img
+            :src="admin.activeCampaign.marketMapUrl"
+            alt="市集平面圖"
+            class="w-full h-full object-contain"
+          />
+        </div>
+        <label
+          class="self-center flex items-center gap-2 px-5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-xs cursor-pointer transition-colors"
+        >
+          <ImageIcon class="w-4 h-4" />
+          {{ uploading ? '上傳中…' : '更換圖片' }}
+          <input type="file" accept="image/*" class="hidden" @change="pickImage" />
+        </label>
+      </div>
+
+      <label
+        v-else
+        class="w-full max-w-2xl aspect-video rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/80 transition-colors flex flex-col items-center justify-center gap-4 cursor-pointer text-emerald-600"
+      >
+        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+          <Plus class="w-8 h-8" />
+        </div>
+        <div class="text-center">
+          <span class="font-bold text-lg block mb-1">
+            {{ uploading ? '上傳中…' : '點擊上傳平面圖' }}
+          </span>
+          <span class="text-xs text-emerald-600/70">支援 JPG、PNG、WebP，5MB 以內</span>
+        </div>
+        <input type="file" accept="image/*" class="hidden" @change="pickImage" />
+      </label>
+    </div>
+
+    <AdminConfirm
+      v-if="confirmClear"
+      message="確定要移除此活動的市集平面圖嗎？"
+      confirm-label="移除"
+      @confirm="clearMap"
+      @cancel="confirmClear = false"
+    />
+  </div>
+</template>

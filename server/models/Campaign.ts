@@ -9,6 +9,16 @@ const campaignSchema = new Schema(
     startAt: { type: Date, required: true },
     endAt: { type: Date, required: true },
     theme: { type: String, default: '' },
+    // 活動類別：district = 商圈（景點）、market = 市集（攤位）。影響後台用語與是否顯示平面圖分頁
+    type: {
+      type: String,
+      enum: ['district', 'market'],
+      default: 'district',
+    },
+    // 活動主打的集章目標數，供後台總覽顯示
+    targetStampCount: { type: Number, default: 0 },
+    // 市集平面圖，僅 type === 'market' 使用；存 /uploads/xxx.png 或外部網址
+    marketMapUrl: { type: String, default: '' },
     // 前端自繪地圖用的設定（背景圖、外框等），彈性欄位
     mapConfig: { type: Schema.Types.Mixed, default: {} },
     status: {

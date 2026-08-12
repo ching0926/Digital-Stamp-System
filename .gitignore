@@ -27,6 +27,10 @@ myenv/
 # 測試用 QR 表（含簽章 token，勿 commit）
 qr-test-sheet.html
 
+# 後台上傳的圖片（營運資料，勿 commit；保留資料夾本身）
+public/uploads/*
+!public/uploads/.gitkeep
+
 # cloudflared 執行檔（54MB，勿 commit）
 cloudflared.exe
 

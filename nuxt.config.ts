@@ -29,6 +29,8 @@ export default defineNuxtConfig({
     sessionSecret: '',
     // 商家核銷通行碼
     staffPasscode: '',
+    // 營運後台通行碼
+    adminPasscode: '',
     // GPS 地理圍籬（型別由預設值推斷：boolean / number）
     geofenceEnforce: true,
     geofenceRadiusM: 300,
