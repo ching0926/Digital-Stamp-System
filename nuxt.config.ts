@@ -39,6 +39,9 @@ export default defineNuxtConfig({
     public: {
       // 前端 Google Maps JavaScript API key（env: NUXT_PUBLIC_GOOGLE_MAPS_API_KEY）
       googleMapsApiKey: '',
+      // 前端是否需要抓 GPS 才送出集章（env: NUXT_PUBLIC_GEOFENCE_ENFORCE）
+      // 與後端 geofenceEnforce 要設成同一個值；關閉時掃碼不會跳定位權限彈窗
+      geofenceEnforce: false,
     },
   },
 

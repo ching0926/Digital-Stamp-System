@@ -106,11 +106,11 @@ export const useCampaignStore = defineStore('campaign', {
       return res
     },
 
-    // 領取獎項（達門檻後）→ 取得核銷碼
-    async claim(rewardId: string) {
-      const red = await $fetch<Redemption & { rewardName: string }>('/api/reward/claim', {
+    // 現場核銷：工作人員在民眾手機上輸入通行碼確認，一次完成領取與核銷
+    async redeemOnSite(rewardId: string, staffKey: string) {
+      const red = await $fetch<Redemption & { rewardName: string }>('/api/reward/redeem', {
         method: 'POST',
-        body: { rewardId },
+        body: { rewardId, staffKey },
       })
       if (!this.claimedRewardIds.includes(rewardId)) this.claimedRewardIds.push(rewardId)
       this.redemptions.push({ id: red.id, rewardId: red.rewardId, code: red.code, status: red.status })

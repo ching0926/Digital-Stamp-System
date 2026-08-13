@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import { ArrowLeft, Zap, CheckCircle, Info, Sparkles, AlertCircle, XCircle } from 'lucide-vue-next'
+import { ArrowLeft, Zap, CheckCircle, Info, Sparkles, XCircle, Award, ScanLine } from 'lucide-vue-next'
 import jsQR from 'jsqr'
 
-const props = defineProps<{ activeScanStationId: string | null }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; goCard: [] }>()
 
 const campaign = useCampaignStore()
+const { public: publicConfig } = useRuntimeConfig()
 
 const flashlight = ref(false)
-const successToast = ref<string | null>(null)
 const errorToast = ref<string | null>(null)
 const cameraBlocked = ref(false)
 const processing = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
 let stream: MediaStream | null = null
+
+// 掃描結果：有值時全螢幕接管，停留等使用者按按鈕（不自動關閉）
+const result = ref<{ already: boolean; stationName: string } | null>(null)
 
 // 即時 QR 解碼用
 let canvas: HTMLCanvasElement | null = null
@@ -21,15 +23,9 @@ let ctx: CanvasRenderingContext2D | null = null
 let rafId = 0
 let lastDecodeAt = 0
 
-const stampable = computed(() => campaign.stampableStations)
-const activeLoc = computed(
-  () => stampable.value.find((l) => l.id === props.activeScanStationId) ?? stampable.value[0],
-)
-
-// 本機測試用的 QR tokens（點擊即模擬掃描；正式站無此端點 → 空）
-const devTokens = ref<{ stationId: string; name: string; token: string; geo: { lat: number; lng: number } }[]>([])
-
+// 圍籬關閉時就不要跟使用者要定位權限（少一個彈窗、也省掉 timeout 等待）
 async function getGeo(): Promise<{ lat: number; lng: number } | undefined> {
+  if (!publicConfig.geofenceEnforce) return undefined
   if (!navigator.geolocation) return undefined
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
@@ -40,28 +36,26 @@ async function getGeo(): Promise<{ lat: number; lng: number } | undefined> {
   })
 }
 
-async function submitToken(token: string, forcedGeo?: { lat: number; lng: number }) {
-  if (processing.value) return // 防止重複送出（掃到多幀 / 連點）
+async function submitToken(token: string) {
+  if (processing.value) return // 防止重複送出（同一張 QR 會連續解到多幀）
   processing.value = true
   try {
-    const geo = forcedGeo ?? (await getGeo())
+    const geo = await getGeo()
     const res = await campaign.collect(token, geo)
-    if (res.alreadyCollected) {
-      successToast.value = `提醒：您之前已經收集過「${res.stationName}」的印章囉！`
-    } else {
-      successToast.value = `集章成功！已收集 ${res.stationName}`
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100])
-    }
-    setTimeout(() => {
-      successToast.value = null
-      emit('close')
-    }, 2000)
+    result.value = { already: res.alreadyCollected, stationName: res.stationName }
+    if (!res.alreadyCollected && navigator.vibrate) navigator.vibrate([100, 50, 100])
   } catch (err: unknown) {
     const e = err as { data?: { message?: string }; statusMessage?: string }
     errorToast.value = e.data?.message ?? e.statusMessage ?? '集章失敗，請再試一次'
     setTimeout(() => (errorToast.value = null), 3000)
-    processing.value = false // 允許重掃
+    processing.value = false // 留在掃描畫面，允許直接重掃
   }
+}
+
+// 關掉結果畫面回到取景狀態，繼續掃下一個點位
+function scanAgain() {
+  result.value = null
+  processing.value = false
 }
 
 // 逐幀從相機畫面解碼 QR（節流約每 200ms 一次）
@@ -77,7 +71,7 @@ function scanFrame(ts: number) {
       ctx.drawImage(v, 0, 0, w, h)
       const img = ctx.getImageData(0, 0, w, h)
       const code = jsQR(img.data, w, h, { inversionAttempts: 'dontInvert' })
-      if (code?.data) submitToken(code.data) // 帶實際 GPS
+      if (code?.data) submitToken(code.data)
     }
   }
   rafId = requestAnimationFrame(scanFrame)
@@ -103,14 +97,6 @@ onMounted(async () => {
   } else {
     cameraBlocked.value = true
   }
-
-  // 載入本機測試 tokens（正式站回 404 → 空陣列，不顯示面板）
-  try {
-    const data = await $fetch<{ tokens: typeof devTokens.value }>('/api/dev/tokens')
-    devTokens.value = data.tokens
-  } catch {
-    devTokens.value = []
-  }
 })
 
 onBeforeUnmount(() => {
@@ -132,28 +118,11 @@ async function toggleFlashlight() {
     }
   }
 }
-
-const activeDevToken = computed(() =>
-  devTokens.value.find((t) => t.stationId === activeLoc.value?.id) ?? null,
-)
 </script>
 
 <template>
   <div class="absolute inset-0 bg-black z-50 flex flex-col justify-between overflow-hidden">
-    <!-- 成功 toast -->
-    <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 -translate-y-6" leave-active-class="transition duration-200" leave-to-class="opacity-0 -translate-y-6">
-      <div v-if="successToast" class="absolute top-16 left-4 right-4 z-50 flex items-center gap-3 p-4 bg-[#ECFDF5] border border-[#10B981]/20 text-[#065F46] shadow-xl rounded-[24px]">
-        <div class="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center text-white shrink-0">
-          <CheckCircle class="w-5 h-5 fill-current" />
-        </div>
-        <div>
-          <p class="text-sm font-bold tracking-tight">集章結果</p>
-          <p class="text-xs text-[#047857] mt-0.5">{{ successToast }}</p>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- 錯誤 toast -->
+    <!-- 錯誤 toast（留在取景畫面，可直接重掃）-->
     <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 -translate-y-6" leave-active-class="transition duration-200" leave-to-class="opacity-0 -translate-y-6">
       <div v-if="errorToast" class="absolute top-16 left-4 right-4 z-50 flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-800 shadow-xl rounded-[24px]">
         <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0">
@@ -202,57 +171,66 @@ const activeDevToken = computed(() =>
       </div>
     </div>
 
-    <!-- 底部面板 -->
-    <div class="relative z-30 px-6 pb-28 pt-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent flex flex-col gap-4">
-      <!-- 本機測試面板（僅 dev；正式站不顯示）-->
-      <template v-if="devTokens.length">
-        <div class="bg-white/10 rounded-[20px] p-3.5 border border-white/5 flex items-center justify-between gap-3">
-          <div class="min-w-0">
-            <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">目標點位</span>
-            <span class="text-sm font-extrabold text-white truncate block mt-0.5">{{ activeLoc?.name }}</span>
+    <!-- 底部：手電筒 -->
+    <div class="relative z-30 px-6 pb-28 pt-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent flex justify-center">
+      <button
+        class="w-14 h-14 rounded-[28px] flex items-center justify-center transition-all"
+        :class="flashlight ? 'bg-white text-gray-900' : 'bg-black/60 text-white border border-white/10 hover:bg-black/80'"
+        title="手電筒"
+        @click="toggleFlashlight"
+      >
+        <Zap class="w-6 h-6" :class="flashlight ? 'fill-current' : ''" />
+      </button>
+    </div>
+
+    <!-- 集章結果：全螢幕接管，停留等使用者操作 -->
+    <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0 scale-95" leave-active-class="transition duration-200" leave-to-class="opacity-0">
+      <div
+        v-if="result"
+        class="absolute inset-0 z-[60] flex flex-col items-center justify-center px-8 text-center"
+        :class="result.already
+          ? 'bg-gradient-to-b from-[#FF8C00] to-[#E07B00]'
+          : 'bg-gradient-to-b from-[#10B981] to-[#059669]'"
+      >
+        <div class="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center mb-6">
+          <component :is="result.already ? Info : CheckCircle" class="w-16 h-16 text-white" />
+        </div>
+
+        <p class="text-2xl font-extrabold text-white tracking-tight">
+          {{ result.already ? '這個章你已經收集過了' : '集章成功！' }}
+        </p>
+        <p class="text-base font-bold text-white/90 mt-2">{{ result.stationName }}</p>
+
+        <!-- 進度 -->
+        <div class="mt-8 w-full max-w-[280px]">
+          <p class="text-sm font-extrabold text-white">
+            第 {{ campaign.collectedCount }} / {{ campaign.totalCount }} 個章
+          </p>
+          <div class="w-full h-2.5 bg-white/25 rounded-full overflow-hidden mt-2.5">
+            <div
+              class="h-full bg-white rounded-full transition-all duration-700 ease-out"
+              :style="{ width: `${campaign.progressPercent}%` }"
+            />
           </div>
+        </div>
+
+        <div class="mt-10 w-full max-w-[280px] flex flex-col gap-3">
           <button
-            class="px-4 py-2 bg-[#FF8C00] hover:bg-[#E07B00] text-white text-xs font-bold rounded-[16px] flex items-center gap-1 shrink-0 shadow-[0_4px_12px_rgba(255,140,0,0.3)] disabled:opacity-40"
-            :disabled="!activeDevToken"
-            @click="activeDevToken && submitToken(activeDevToken.token, activeDevToken.geo)"
+            class="w-full py-3.5 bg-white text-gray-900 text-sm font-extrabold rounded-[20px] shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+            @click="scanAgain"
           >
-            <Sparkles class="w-3.5 h-3.5" />
-            <span>對焦掃描</span>
+            <ScanLine class="w-4 h-4" />
+            <span>繼續掃描</span>
+          </button>
+          <button
+            class="w-full py-3.5 bg-white/15 hover:bg-white/25 text-white text-sm font-extrabold rounded-[20px] border border-white/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            @click="emit('goCard')"
+          >
+            <Award class="w-4 h-4" />
+            <span>看集章卡</span>
           </button>
         </div>
-
-        <div class="bg-black/40 rounded-[24px] p-3 border border-white/5">
-          <p class="text-[10px] text-gray-400 font-bold px-2 mb-2 flex items-center gap-1">
-            <AlertCircle class="w-3.5 h-3.5 text-orange-400" />
-            <span>開發測試快捷區：點擊即模擬掃描該點位 QR</span>
-          </p>
-          <div class="grid grid-cols-2 gap-2">
-            <button
-              v-for="t in devTokens"
-              :key="t.stationId"
-              class="px-2.5 py-1.5 rounded-[12px] text-[11px] font-bold text-left transition-colors truncate flex items-center justify-between"
-              :class="campaign.isCollected(t.stationId)
-                ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/40'
-                : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5'"
-              @click="submitToken(t.token, t.geo)"
-            >
-              <span class="truncate">{{ t.name.replace('加蚋仔', '') }}</span>
-              <span class="text-[9px] font-bold opacity-80 scale-90">{{ campaign.isCollected(t.stationId) ? '已集' : '集章' }}</span>
-            </button>
-          </div>
-        </div>
-      </template>
-
-      <div class="flex justify-center mt-2">
-        <button
-          class="w-14 h-14 rounded-[28px] flex items-center justify-center transition-all"
-          :class="flashlight ? 'bg-white text-gray-900' : 'bg-black/60 text-white border border-white/10 hover:bg-black/80'"
-          title="手電筒"
-          @click="toggleFlashlight"
-        >
-          <Zap class="w-6 h-6" :class="flashlight ? 'fill-current' : ''" />
-        </button>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>

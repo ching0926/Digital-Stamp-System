@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import QRCode from 'qrcode'
-import { Gift, Coffee, FileText, Ticket, Award, X, CheckCircle2 } from 'lucide-vue-next'
+import { Gift, Coffee, FileText, Ticket, Award, X, CheckCircle2, AlertTriangle } from 'lucide-vue-next'
 import type { Reward } from '~/stores/campaign'
 
 const campaign = useCampaignStore()
@@ -14,44 +13,51 @@ const iconOf = (type: string) =>
   type === 'coffee' ? Coffee : type === 'bag' ? Gift : type === 'postcard' ? FileText : Ticket
 
 const activeReward = ref<Reward | null>(null)
-const qrDataUrl = ref('')
-const claiming = ref(false)
-const claimError = ref('')
+// 票券彈窗的兩段式：idle = 顯示核銷按鈕、confirm = 工作人員確認 + 輸入通行碼
+const verifyStep = ref<'idle' | 'confirm'>('idle')
+const staffKey = ref('')
+const redeeming = ref(false)
+const redeemError = ref('')
 
 const activeRedemption = computed(() =>
   activeReward.value ? campaign.redemptionFor(activeReward.value.id) : null,
 )
 
-async function renderQr(code: string) {
-  qrDataUrl.value = await QRCode.toDataURL(code, { margin: 1, width: 220 })
+// 卡片上的狀態標示：null = 尚未核銷、redeemed = 已兌換
+const statusOf = (rewardId: string) => campaign.redemptionFor(rewardId)?.status ?? null
+
+function resetVerify() {
+  verifyStep.value = 'idle'
+  // 通行碼不做記憶，每次核銷都要工作人員重新輸入
+  staffKey.value = ''
+  redeemError.value = ''
 }
 
-async function openTicket(reward: Reward) {
+function openTicket(reward: Reward) {
   activeReward.value = reward
-  claimError.value = ''
-  const existing = campaign.redemptionFor(reward.id)
-  if (existing) await renderQr(existing.code)
-  else qrDataUrl.value = ''
+  resetVerify()
 }
 
-async function doClaim() {
-  if (!activeReward.value) return
-  claiming.value = true
-  claimError.value = ''
+// 由工作人員在民眾手機上按下：一次完成領取與核銷
+async function doRedeem() {
+  if (!activeReward.value || !staffKey.value.trim()) return
+  redeeming.value = true
+  redeemError.value = ''
   try {
-    const red = await campaign.claim(activeReward.value.id)
-    await renderQr(red.code)
+    await campaign.redeemOnSite(activeReward.value.id, staffKey.value.trim())
+    resetVerify()
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100])
   } catch (err: unknown) {
     const e = err as { data?: { message?: string }; statusMessage?: string }
-    claimError.value = e.data?.message ?? e.statusMessage ?? '兌換失敗，請再試一次'
+    redeemError.value = e.data?.message ?? e.statusMessage ?? '核銷失敗，請再試一次'
   } finally {
-    claiming.value = false
+    redeeming.value = false
   }
 }
 
 function closeTicket() {
   activeReward.value = null
-  qrDataUrl.value = ''
+  resetVerify()
 }
 </script>
 
@@ -86,11 +92,13 @@ function closeTicket() {
           :key="reward.id"
           class="bg-white p-4 rounded-[24px] border transition-all flex flex-col gap-4"
           :class="[
-            campaign.isClaimed(reward.id)
-              ? 'border-gray-100 opacity-90'
-              : collectedCount >= reward.requirementCount
-                ? 'border-[#FF8C00] shadow-[0_4px_16px_rgba(255,140,0,0.04)]'
-                : 'border-gray-100',
+            statusOf(reward.id) === 'redeemed'
+              ? 'border-gray-100 opacity-70'
+              : campaign.isClaimed(reward.id)
+                ? 'border-gray-100 opacity-90'
+                : collectedCount >= reward.requirementCount
+                  ? 'border-[#FF8C00] shadow-[0_4px_16px_rgba(255,140,0,0.04)]'
+                  : 'border-gray-100',
           ]"
         >
           <div class="flex items-start gap-3">
@@ -101,6 +109,10 @@ function closeTicket() {
               <div class="flex items-center gap-2">
                 <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">集滿 {{ reward.requirementCount }} 章</span>
                 <span v-if="collectedCount >= reward.requirementCount && !campaign.isClaimed(reward.id)" class="text-[10px] font-bold text-[#FF8C00] bg-orange-50 px-2 py-0.5 rounded-full animate-pulse">可兌換</span>
+                <span v-else-if="statusOf(reward.id) === 'redeemed'" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <CheckCircle2 class="w-3 h-3" />
+                  <span>已兌換</span>
+                </span>
               </div>
               <h4 class="text-xs font-bold text-gray-800 mt-1.5 truncate">{{ reward.title }}</h4>
               <p class="text-[11px] font-semibold text-gray-500 truncate mt-0.5">{{ reward.rewardName }}</p>
@@ -153,42 +165,75 @@ function closeTicket() {
               <p class="text-[10px] font-bold text-gray-400">兌換項目</p>
               <p class="text-xs font-bold text-gray-800">{{ activeReward.title }}</p>
               <p class="text-[10px] font-bold text-gray-400 mt-2">使用規則</p>
-              <p class="text-[10px] text-gray-500 leading-relaxed">請至加蚋仔商圈指定合作店家 / 服務台，出示下方核銷碼或 QR 由工作人員核銷，一人限兌一組。</p>
+              <p class="text-[10px] text-gray-500 leading-relaxed">本券限於加蚋仔商圈指定合作店家、服務台由工作人員當場核銷，一人限兌一組。</p>
             </div>
 
-            <!-- 尚未領取 -->
-            <template v-if="!activeRedemption">
-              <p v-if="claimError" class="text-xs text-red-500 font-bold text-center">{{ claimError }}</p>
-              <button
-                class="w-full py-3 bg-gradient-to-r from-[#FF8C00] to-[#FFA333] hover:from-[#E07B00] hover:to-[#E09200] text-white text-sm font-extrabold rounded-[20px] shadow-[0_4px_12px_rgba(255,140,0,0.2)] transition-all active:scale-95 disabled:opacity-60"
-                :disabled="claiming"
-                @click="doClaim"
-              >
-                {{ claiming ? '兌換中…' : '確認領取此獎項' }}
-              </button>
-              <p class="text-[10px] text-gray-400 text-center">領取後將產生專屬核銷碼，請於現場出示。</p>
-            </template>
-
-            <!-- 已領取：顯示核銷碼 + QR -->
-            <template v-else>
-              <div
-                v-if="activeRedemption.status === 'redeemed'"
-                class="w-full py-4 flex flex-col items-center border-2 border-dashed border-emerald-200 rounded-[24px] bg-emerald-50/30"
-              >
-                <CheckCircle2 class="w-10 h-10 text-emerald-500 mb-2" />
-                <span class="text-xs font-extrabold text-emerald-800">核銷完成！</span>
-                <span class="text-[10px] text-gray-500 mt-1">本兌換券已由工作人員核銷</span>
-                <span class="text-sm font-mono font-bold text-gray-400 mt-2 tracking-widest line-through">{{ activeRedemption.code }}</span>
+            <!-- 已核銷：完成狀態，無任何可再次核銷的入口 -->
+            <div
+              v-if="activeRedemption?.status === 'redeemed'"
+              class="relative w-full py-5 px-6 flex flex-col items-center justify-center border-2 border-dashed border-emerald-200 rounded-[24px] bg-emerald-50/20 overflow-hidden"
+            >
+              <div class="absolute rotate-12 border-4 border-emerald-500 text-emerald-500 font-extrabold text-2xl px-4 py-1 rounded-lg tracking-wider opacity-15 select-none pointer-events-none scale-125">
+                已核銷
               </div>
-              <template v-else>
-                <img v-if="qrDataUrl" :src="qrDataUrl" alt="核銷 QR" class="w-44 h-44 rounded-2xl border border-gray-100" >
-                <div class="text-center">
-                  <p class="text-[10px] text-gray-400 font-bold">核銷碼</p>
-                  <p class="text-2xl font-mono font-extrabold text-gray-900 tracking-[0.3em]">{{ activeRedemption.code }}</p>
-                </div>
-                <div class="w-full text-center text-[10px] text-gray-400 bg-gray-50 rounded-[16px] py-2">請交由現場工作人員掃碼或輸入核銷，請勿自行操作。</div>
-              </template>
-            </template>
+              <CheckCircle2 class="w-10 h-10 text-emerald-500 mb-2" />
+              <span class="text-xs font-extrabold text-emerald-800">核銷完成！</span>
+              <span class="text-[10px] text-gray-500 mt-1 font-semibold">本兌換券已由工作人員點選核銷</span>
+              <span class="text-[8px] text-gray-400 mt-2 font-mono">紀錄編號 {{ activeRedemption.code }}</span>
+            </div>
+
+            <!-- 工作人員確認 + 通行碼 -->
+            <div
+              v-else-if="verifyStep === 'confirm'"
+              class="w-full p-4 border-2 border-dashed border-amber-200 rounded-[24px] bg-amber-50/20 flex flex-col items-center"
+            >
+              <AlertTriangle class="w-8 h-8 text-amber-500 mb-2" />
+              <h4 class="text-xs font-extrabold text-amber-800">工作人員請確認</h4>
+              <p class="text-[10px] text-gray-600 text-center leading-relaxed mt-1.5 px-1">
+                請確認已在現場核對並提供實體獎項或商品。核銷後此券即作廢，無法復原。
+              </p>
+
+              <input
+                v-model="staffKey"
+                type="password"
+                inputmode="text"
+                placeholder="工作人員通行碼"
+                class="w-full mt-3 px-4 py-2.5 rounded-[16px] bg-white border border-amber-200 text-sm text-center focus:outline-none focus:border-amber-400"
+                @keyup.enter="doRedeem"
+              >
+              <p v-if="redeemError" class="text-[10px] text-red-500 font-bold text-center mt-2">{{ redeemError }}</p>
+
+              <div class="flex gap-2 w-full mt-3.5">
+                <button
+                  class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-bold rounded-[20px] transition-all"
+                  :disabled="redeeming"
+                  @click="resetVerify"
+                >
+                  取消
+                </button>
+                <button
+                  class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-[20px] shadow-md transition-all active:scale-95 disabled:opacity-50"
+                  :disabled="redeeming || !staffKey.trim()"
+                  @click="doRedeem"
+                >
+                  {{ redeeming ? '核銷中…' : '確認核銷' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 預設：交給工作人員點 -->
+            <div v-else class="w-full flex flex-col items-center gap-2.5">
+              <button
+                class="w-full py-3 bg-gradient-to-r from-[#FF8C00] to-[#FFA333] hover:from-[#E07B00] hover:to-[#E09200] text-white text-sm font-extrabold rounded-[20px] shadow-[0_4px_12px_rgba(255,140,0,0.2)] transition-all active:scale-95"
+                @click="verifyStep = 'confirm'"
+              >
+                工作人員點選核銷
+              </button>
+              <div class="text-[10px] text-gray-500 text-center leading-relaxed max-w-[240px]">
+                <span class="font-bold text-gray-400 block mb-0.5">【商家 / 工作人員核銷專用】</span>
+                兌換時請交由現場店員點擊上述按鈕進行核銷，請勿自行點擊。
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -25,15 +25,13 @@ if (!uri) {
 async function reset() {
   await mongoose.connect(uri!)
 
-  // 1) 清空本機測試者的集章 / 兌換紀錄
-  const user = await UserModel.findOne({ lineUserId: 'LOCAL' })
-  if (user) {
-    const s = await StampRecordModel.deleteMany({ userId: user._id })
-    const r = await RedemptionModel.deleteMany({ userId: user._id })
-    console.log(`✓ 已清除本機測試者：集章 ${s.deletedCount} 筆、兌換 ${r.deletedCount} 筆`)
-  } else {
-    console.log('（目前沒有本機測試者資料，略過）')
-  }
+  // 1) 清空所有測試進度。
+  // 身分改為匿名裝置身分後已無固定的測試帳號，且每個瀏覽器都會開一個，
+  // 所以直接把集章／兌換紀錄與匿名帳號全部清掉，回到「沒有人參加過」的狀態。
+  const s = await StampRecordModel.deleteMany({})
+  const r = await RedemptionModel.deleteMany({})
+  const u = await UserModel.deleteMany({ lineUserId: /^anon:/ })
+  console.log(`✓ 已清除：集章 ${s.deletedCount} 筆、兌換 ${r.deletedCount} 筆、匿名帳號 ${u.deletedCount} 個`)
 
   // 2) 還原獎項庫存（兌換會扣庫存，重置一併還原）
   const campaign = await CampaignModel.findOne({ status: 'active' }).sort({ createdAt: -1 })

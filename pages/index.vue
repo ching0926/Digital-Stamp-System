@@ -10,30 +10,33 @@ const activeTab = ref<Tab>('map')
 const selectedStation = ref<Station | null>(null)
 const isListSheetOpen = ref(false)
 const isScannerOpen = ref(false)
-const activeScanStationId = ref<string | null>(null)
 const booting = ref(true)
 const bootError = ref<string | null>(null)
 
 function selectStation(s: Station) {
   selectedStation.value = s
 }
-function openScanner(id: string | null) {
-  activeScanStationId.value = id
+function openScanner() {
   isScannerOpen.value = true
 }
 function selectAndNavigate(s: Station) {
   selectedStation.value = s
   activeTab.value = 'map'
 }
-function startScanning(id: string) {
+function startScanning() {
   selectedStation.value = null
-  openScanner(id)
+  openScanner()
+}
+// 掃到章之後從結果畫面跳去集章卡
+function goCardFromScanner() {
+  isScannerOpen.value = false
+  activeTab.value = 'card'
 }
 
 async function ensureAuth() {
   await user.fetchMe()
   if (user.isAuthenticated) return
-  await user.login() // 本機測試：自動登入
+  await user.login() // 無 session 時自動開一個匿名身分
 }
 
 onMounted(async () => {
@@ -120,7 +123,7 @@ onMounted(async () => {
       <ListBottomSheet v-if="isListSheetOpen" @close="isListSheetOpen = false" @select="selectStation" />
 
       <!-- 掃碼全螢幕 -->
-      <Scanner v-if="isScannerOpen" :active-scan-station-id="activeScanStationId" @close="isScannerOpen = false; activeScanStationId = null" />
+      <Scanner v-if="isScannerOpen" @close="isScannerOpen = false" @go-card="goCardFromScanner" />
     </template>
   </div>
 </template>
