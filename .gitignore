@@ -34,5 +34,14 @@ public/uploads/*
 # cloudflared 執行檔（54MB，勿 commit）
 cloudflared.exe
 
+# 舊 React 原型的一次性腳本與筆記（不進版控，檔案保留在本機）
+# 註：prototype/index.html 已在版控中，故 html 只忽略指定那一支
+prototype/*.txt
+prototype/*.py
+prototype/*.cjs
+prototype/*.lock
+prototype/.gitignore
+prototype/test-datalist.html
+
 .vercel
 .env*
