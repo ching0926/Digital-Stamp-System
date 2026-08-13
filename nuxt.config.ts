@@ -31,6 +31,8 @@ export default defineNuxtConfig({
     staffPasscode: '',
     // 營運後台通行碼
     adminPasscode: '',
+    // 後台網域白名單，逗號分隔（如 admin.example.com）；留空 = 不啟用網域分離檢查
+    adminHostnames: '',
     // GPS 地理圍籬（型別由預設值推斷：boolean / number）
     geofenceEnforce: true,
     geofenceRadiusM: 300,

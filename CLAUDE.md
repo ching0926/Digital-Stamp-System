@@ -43,7 +43,7 @@ npm run qrsheet     # 產生 qr-test-sheet.html（可掃 QR；本機多用測試
 - **前端**：Nuxt 3 pages/components（Vue 3 SFC，`<script setup>`）+ **Pinia** 狀態 + **Tailwind v4**。元件、composables、stores 皆 **自動匯入**。
 - **後端**：Nitro 檔案式路由 `server/api/**`，`server/utils/**` 自動匯入，`server/models/**` 為 Mongoose 模型（**需手動 import**）。
 - **資料流**：`stores/*` → `$fetch('/api/...')` → Nitro handler → Mongoose → MongoDB。
-- **驗證/安全**：HMAC 簽章 session cookie（`server/utils/auth.ts`）、半靜態簽章 QR（`server/utils/qr.ts`）、GPS 圍籬（`server/utils/geo.ts`）。
+- **驗證/安全**：HMAC 簽章 session cookie（`server/utils/auth.ts`）、半靜態簽章 QR（`server/utils/qr.ts`）、GPS 圍籬（`server/utils/geo.ts`）、網域分離防護（`server/middleware/0.admin-host-guard.ts`，選配）。
 
 ### API 端點
 | 方法 路徑 | 說明 |
@@ -84,6 +84,7 @@ composables/          useAdminToast.ts（後台共用提示，跨元件用 useSt
 stores/               Pinia：user.ts（登入）、campaign.ts（前台狀態）、admin.ts（後台狀態 + CRUD）
 server/
   api/                Nitro 端點（見上表），依 <名稱>.<method>.ts 命名；後台在 api/admin/
+  middleware/         0.admin-host-guard.ts（網域分離防護，選配，見 NUXT_ADMIN_HOSTNAMES）
   models/             Mongoose 模型（7 個集合，需手動 import）
   utils/              自動匯入：mongoose 連線、auth session、qr 簽章、geo 圍籬、code 產碼、
                       admin 通行碼 guard、adminDto 回傳序列化
@@ -133,7 +134,8 @@ Tenant → Campaign → Station／Reward；User；StampRecord（`(userId,station
 - **後台 QR 一定要用 token 格式**：舊 React 原型的 QR 編的是 `/scan/{campaignId}/{locId}` 網址，本專案驗的是 `v1.<stationId>.<hmac>`。照抄原型會掃不過。
 - **上傳圖片只在 dev 有效**：`public/` 於 build 時才複製進 `.output`，故 `npm run preview` 讀不到執行期上傳的檔。要上雲需改物件儲存。
 - **刪除有保護**：有集章紀錄的活動／集章點、已被領取的獎項一律回 409 擋下，避免留下孤兒紀錄。要停用請改用「已封存」或 `noStamp`。
+- **網域分離部署**：若之後前後台分域部署，兩個部署的 `NUXT_ADMIN_HOSTNAMES` 要設成一致值（都含 admin 網域），因為判斷依據是請求的 Host header，跟哪個實體部署接到請求無關。
 
 ## 8. 環境變數（`.env`，範本見 `.env.example`）
 
-`NUXT_MONGODB_URI`、`NUXT_SESSION_SECRET`、`NUXT_STAFF_PASSCODE`（核銷通行碼）、`NUXT_ADMIN_PASSCODE`（後台通行碼）、`NUXT_GEOFENCE_ENFORCE`（本機建議 `false`）、`NUXT_GEOFENCE_RADIUS_M`。
+`NUXT_MONGODB_URI`、`NUXT_SESSION_SECRET`、`NUXT_STAFF_PASSCODE`（核銷通行碼）、`NUXT_ADMIN_PASSCODE`（後台通行碼）、`NUXT_ADMIN_HOSTNAMES`（後台網域白名單，逗號分隔；留空＝不啟用網域分離檢查，本機預設）、`NUXT_GEOFENCE_ENFORCE`（本機建議 `false`）、`NUXT_GEOFENCE_RADIUS_M`。

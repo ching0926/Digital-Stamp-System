@@ -14,7 +14,11 @@ import {
   AlertTriangle,
 } from 'lucide-vue-next'
 
-useHead({ title: '營運後台 · 揪裡嗨集章' })
+useHead({
+  title: '營運後台 · 揪裡嗨集章',
+  // 避免被搜尋引擎索引到後台頁面（僅為額外保險，非安全防護）
+  meta: [{ name: 'robots', content: 'noindex, nofollow' }],
+})
 
 type Tab = 'home' | 'stations' | 'rewards' | 'qrcode' | 'market-map'
 
