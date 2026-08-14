@@ -48,6 +48,9 @@ export default defineEventHandler(async (event) => {
       startAt: campaign.startAt,
       endAt: campaign.endAt,
       theme: campaign.theme,
+      // 前台據此決定要渲染 Google 地圖還是市集平面圖
+      type: campaign.type,
+      marketMapUrl: campaign.marketMapUrl,
     },
     stations: stations.map((s) => ({
       id: s._id.toString(),

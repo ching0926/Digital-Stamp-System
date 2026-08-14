@@ -8,11 +8,12 @@ const campaign = useCampaignStore()
 const percentage = computed(() => campaign.progressPercent)
 const isAllCompleted = computed(() => campaign.collectedCount === campaign.totalCount && campaign.totalCount > 0)
 
-const steps = [
-  { n: 1, title: '尋找點位', desc: '點擊「集章卡」或「探索地圖」上的景點圖示。' },
-  { n: 2, title: '導航出發', desc: '畫面跳出小卡後，點擊右側的「導航」前往現場。' },
+// 用語隨活動類型變動（商圈＝景點、市集＝攤位）
+const steps = computed(() => [
+  { n: 1, title: '尋找點位', desc: `點擊「集章卡」或地圖上的${campaign.unitLabel}圖示。` },
+  { n: 2, title: '前往現場', desc: '畫面跳出小卡後，依卡片上的資訊前往現場。' },
   { n: 3, title: '掃碼集章', desc: '抵達現場後開啟相機，掃描現場 QR Code 即可成功集章！' },
-]
+])
 </script>
 
 <template>

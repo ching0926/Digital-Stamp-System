@@ -83,7 +83,7 @@ function openDirections() {
         <!-- CTA -->
         <div class="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
           <div v-if="station.noStamp" class="w-full h-14 bg-orange-50/50 text-[#FF8C00] font-bold rounded-[24px] flex items-center justify-center gap-2 border border-orange-100/55 text-xs">
-            <span>此景點無須集章，歡迎前往探索！</span>
+            <span>此{{ campaign.unitLabel }}無須集章，歡迎前往探索！</span>
           </div>
           <div v-else-if="isCollected" class="w-full h-14 bg-emerald-50 text-emerald-700 font-bold rounded-[24px] flex items-center justify-center gap-2 border border-emerald-200">
             <CheckCircle2 class="w-5 h-5 text-emerald-600" />

@@ -23,7 +23,7 @@ const heightState = ref<'half' | 'full'>('half')
         </div>
 
         <div class="px-6 py-4 flex justify-between items-center border-b border-gray-50">
-          <h2 class="text-base font-bold text-gray-900">加蚋仔點位清單 ({{ campaign.collectedCount }}/{{ campaign.totalCount }})</h2>
+          <h2 class="text-base font-bold text-gray-900">{{ campaign.unitLabel }}清單 ({{ campaign.collectedCount }}/{{ campaign.totalCount }})</h2>
           <button class="w-8 h-8 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-[16px] flex items-center justify-center active:scale-95 shrink-0" title="關閉" @click="emit('close')">
             <X class="w-4 h-4" />
           </button>

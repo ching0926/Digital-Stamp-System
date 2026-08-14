@@ -34,8 +34,16 @@ export interface Redemption {
   status: 'pending' | 'redeemed'
 }
 
+export type CampaignType = 'district' | 'market'
+
 interface CampaignPayload {
-  campaign: { id: string; title: string; description: string }
+  campaign: {
+    id: string
+    title: string
+    description: string
+    type: CampaignType
+    marketMapUrl: string
+  }
   stations: Station[]
   rewards: Reward[]
   collectedStationIds: string[]
@@ -47,6 +55,8 @@ export const useCampaignStore = defineStore('campaign', {
   state: () => ({
     campaignId: '' as string,
     title: '' as string,
+    campaignType: 'district' as CampaignType,
+    marketMapUrl: '' as string,
     stations: [] as Station[],
     rewards: [] as Reward[],
     collectedStationIds: [] as string[],
@@ -56,6 +66,10 @@ export const useCampaignStore = defineStore('campaign', {
     loaded: false,
   }),
   getters: {
+    // 市集用自繪平面圖，商圈用 Google 地圖
+    isMarket: (state) => state.campaignType === 'market',
+    // 前台用語：與 stores/admin.ts 的同名 getter 一致
+    unitLabel: (state) => (state.campaignType === 'market' ? '攤位' : '景點'),
     stampableStations: (state) => state.stations.filter((s) => !s.noStamp),
     collectedCount: (state) => state.collectedStationIds.length,
     totalCount(): number {
@@ -80,6 +94,8 @@ export const useCampaignStore = defineStore('campaign', {
         const data = await $fetch<CampaignPayload>('/api/campaign/current')
         this.campaignId = data.campaign.id
         this.title = data.campaign.title
+        this.campaignType = data.campaign.type ?? 'district'
+        this.marketMapUrl = data.campaign.marketMapUrl ?? ''
         this.stations = data.stations
         this.rewards = data.rewards
         this.collectedStationIds = data.collectedStationIds

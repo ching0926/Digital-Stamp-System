@@ -25,6 +25,27 @@ async function pickImage(e: Event) {
   }
 }
 
+// 線上版（Vercel serverless）檔案系統唯讀，上傳必失敗，所以一定要留貼網址這條路
+const urlInput = ref('')
+const applyingUrl = ref(false)
+
+async function applyUrl() {
+  const campaign = admin.activeCampaign
+  const url = urlInput.value.trim()
+  if (!campaign || !url) return
+
+  applyingUrl.value = true
+  try {
+    await admin.updateCampaign(campaign.id, { marketMapUrl: url })
+    urlInput.value = ''
+    toast('市集平面圖已更新')
+  } catch (err) {
+    showError(err, '平面圖設定失敗')
+  } finally {
+    applyingUrl.value = false
+  }
+}
+
 const confirmClear = ref(false)
 
 async function clearMap() {
@@ -49,7 +70,8 @@ async function clearMap() {
           市集平面圖
         </h2>
         <p class="text-xs text-gray-400 mt-1">
-          上傳市集攤位配置圖。攤位在圖上的位置由各攤位的「地圖 X／Y」百分比決定。
+          設定市集攤位配置圖。攤位在圖上的位置由各攤位的「地圖 X／Y」百分比決定。
+          <span class="text-amber-600 font-semibold">線上版請用「貼圖片網址」</span>——雲端主機無法存檔，上傳只在本機開發可用。
         </p>
       </div>
       <button
@@ -59,6 +81,25 @@ async function clearMap() {
       >
         <Trash2 class="w-4 h-4" />
         移除平面圖
+      </button>
+    </div>
+
+    <!-- 貼圖片網址（線上版唯一可行的方式） -->
+    <div class="bg-white rounded-3xl border border-gray-100 p-4 shadow-sm flex flex-col sm:flex-row gap-2 sm:items-center">
+      <label class="text-xs font-bold text-gray-500 shrink-0 sm:w-24">圖片網址</label>
+      <input
+        v-model="urlInput"
+        type="url"
+        placeholder="https://example.com/market-map.jpg"
+        class="flex-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-emerald-400"
+        @keyup.enter="applyUrl"
+      >
+      <button
+        class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-40 shrink-0"
+        :disabled="applyingUrl || !urlInput.trim()"
+        @click="applyUrl"
+      >
+        {{ applyingUrl ? '套用中…' : '套用' }}
       </button>
     </div>
 

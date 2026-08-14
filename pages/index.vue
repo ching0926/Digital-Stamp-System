@@ -83,8 +83,16 @@ onMounted(async () => {
       <!-- 分頁內容 -->
       <div class="flex-1 flex flex-col relative overflow-hidden">
         <Transition mode="out-in" enter-active-class="transition duration-200" enter-from-class="opacity-0 translate-y-2" leave-active-class="transition duration-150" leave-to-class="opacity-0 -translate-y-2">
+          <!-- 市集用自繪平面圖，商圈用 Google 地圖 -->
+          <MarketMapView
+            v-if="activeTab === 'map' && campaign.isMarket"
+            :selected-station-id="selectedStation?.id ?? null"
+            @select="selectStation"
+            @open-list="isListSheetOpen = true"
+            @open-scanner="openScanner"
+          />
           <MapView
-            v-if="activeTab === 'map'"
+            v-else-if="activeTab === 'map'"
             :selected-station-id="selectedStation?.id ?? null"
             @select="selectStation"
             @open-list="isListSheetOpen = true"
@@ -103,7 +111,7 @@ onMounted(async () => {
         </button>
         <button class="flex flex-col items-center gap-1 py-1 px-6 transition-all duration-300" :class="activeTab === 'map' ? 'text-[#FF8C00] scale-105 font-bold' : 'text-gray-400 hover:text-gray-600'" @click="activeTab = 'map'">
           <MapIcon class="w-5 h-5" />
-          <span class="text-[10px] font-extrabold tracking-tight">探索地圖</span>
+          <span class="text-[10px] font-extrabold tracking-tight">{{ campaign.isMarket ? '市集地圖' : '探索地圖' }}</span>
         </button>
         <button class="flex flex-col items-center gap-1 py-1 px-6 transition-all duration-300" :class="activeTab === 'rewards' ? 'text-[#FF8C00] scale-105 font-bold' : 'text-gray-400 hover:text-gray-600'" @click="activeTab = 'rewards'">
           <Gift class="w-5 h-5" />

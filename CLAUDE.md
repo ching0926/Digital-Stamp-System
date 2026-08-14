@@ -18,7 +18,8 @@
 - ✅ **已完成（前台）**：匿名裝置身分自動登入、活動/集章點/獎項載入、**相機即時掃 QR 集章**（jsQR 解碼 + 簽章驗證 + 全螢幕成功畫面）、集章進度、**現場核銷**（工作人員在民眾手機上輸入通行碼 → 二次確認 → 一次完成領取與核銷，防重複）、GPS 地理圍籬（可開關）。
 - ✅ **已完成（後台 `/admin`）**：通行碼登入、多活動 CRUD（含商圈/市集分類、狀態切換）、集章點 CRUD、獎項 CRUD、QR 產生下載、市集平面圖上傳（**僅本機有效**，見雷區）。
 - ✅ **已驗證**：typecheck 0 錯誤、production build 通過、**線上全流程實測**（訪客身分→掃 QR 集章→重複掃提示→領獎→核銷）、跨帳號隔離實測（A/B 兩個匿名身分各自能領同一獎項，同一人重領回 409）、後台 API 全端點實測（含 401 擋、409 刪除保護）。
-- 🚧 **未做**：LINE LIFF 身分接入、圖片上傳改物件儲存、前台市集平面圖呈現、前台多活動切換（目前固定取最新一檔 active）、數據分析、多租戶管理介面。
+- ✅ **已完成（市集版）**：前台依 `campaign.type` 自動切換——`market` 顯示可平移縮放的平面圖 + 依 `mapCoord` 定位的攤位標記（`MarketMapView.vue`），`district` 維持 Google 地圖（`MapView.vue`）。前台用語（景點／攤位）隨類型變動。
+- 🚧 **未做**：LINE LIFF 身分接入、圖片上傳改物件儲存、前台多活動切換（目前固定取最新一檔 active）、數據分析、多租戶管理介面。
 - ⚠️ **注意**：`server/data/kaladziah.ts` 的 GPS 座標為近似值；若要啟用圍籬（`NUXT_GEOFENCE_ENFORCE=true`）需先實地校正，否則會誤擋。啟用時**兩個 env 要一起開**（見第 8 節）。
 
 ## 3. 常用指令
@@ -80,7 +81,8 @@ pages/
   index.vue           主 App（自動登入 → 地圖/集章卡/獎項分頁殼層）
   admin.vue           營運後台（通行碼 gate + 側欄 + toast，分頁由下列元件組成）
 components/            Vue 元件（自動匯入）
-                      前台：MapView / StampCard / RewardsList / Scanner /
+                      前台：MapView（商圈／Google 地圖）/ MarketMapView（市集／平面圖）/
+                            StampCard / RewardsList / Scanner /
                             DetailBottomSheet / ListBottomSheet
                       後台：AdminCampaigns / AdminStations / AdminRewards /
                             AdminQrCodes / AdminMarketMap / AdminModal / AdminConfirm
@@ -139,7 +141,9 @@ Tenant → Campaign → Station／Reward；User；StampRecord（`(userId,station
 - **圍籬要開就兩個 env 一起開**：`NUXT_GEOFENCE_ENFORCE`（後端擋）與 `NUXT_PUBLIC_GEOFENCE_ENFORCE`（前端才會去抓 GPS）。只開後端會變成前端不送座標、後端一律擋下。
 - **後台 QR 一定要用 token 格式**：舊 React 原型的 QR 編的是 `/scan/{campaignId}/{locId}` 網址，本專案驗的是 `v1.<stationId>.<hmac>`。照抄原型會掃不過。
 - **核銷已無 QR／核銷碼／`/verify` 頁**：改成工作人員在民眾手機上按「工作人員點選核銷」→ 輸入通行碼 → 「確認核銷」，`POST /api/reward/redeem` 一次完成領取與核銷。Redemption 仍會產生 `code`（欄位 required + unique），但只作為對帳用的紀錄編號，不再給人掃。因此**庫存只會扣一次**，且不存在 `pending` 狀態的兌換紀錄。
-- **圖片上傳在 Vercel 上必失敗**：serverless 檔案系統唯讀，`admin/upload.post.ts` 寫 `public/uploads/` 會壞。線上請改用「貼圖片網址」（後台欄位本來就支援），要真的支援上傳得改接物件儲存。
+- **圖片上傳在 Vercel 上必失敗**：serverless 檔案系統唯讀，`admin/upload.post.ts` 寫 `public/uploads/` 會壞。線上請改用「貼圖片網址」（集章點照片與市集平面圖都有此欄位），要真的支援上傳得改接物件儲存。
+- **市集版靠 `campaign.type` 驅動**：`/api/campaign/current` 必須回傳 `type` 與 `marketMapUrl`，前台才知道要渲染哪一種地圖。攤位在平面圖上的位置來自 `station.mapCoord` 的 **x/y 百分比**（非 GPS），後台「地圖 X／Y（%）」沒填會落在正中央（預設 50/50）。
+- **前台仍有寫死的「加蚋仔」字樣**：`StampCard.vue` 的名稱裁切與 `RewardsList.vue` 的票券文案。單一活動下沒問題，之後要做多租戶／多活動時需一併抽成活動設定。
 - **刪除有保護**：有集章紀錄的活動／集章點、已被領取的獎項一律回 409 擋下，避免留下孤兒紀錄。要停用請改用「已封存」或 `noStamp`。
 - **網域分離部署**：若之後前後台分域部署，兩個部署的 `NUXT_ADMIN_HOSTNAMES` 要設成一致值（都含 admin 網域），因為判斷依據是請求的 Host header，跟哪個實體部署接到請求無關。
 
