@@ -76,9 +76,6 @@ function doToggle() {
       </h2>
       <p class="text-xs text-gray-400 mt-1">
         下載後列印張貼於各{{ admin.unitLabel }}，供民眾掃描集章。QR 內容固定不變，可長期使用。
-        <span class="text-amber-600 font-semibold">
-          QR 現在編的是掃碼網址，民眾用手機內建相機掃即可開啟集章；2026/08 之前印製的舊 QR 需重印才支援內建相機（站內掃描器仍可掃）。
-        </span>
       </p>
     </div>
 
