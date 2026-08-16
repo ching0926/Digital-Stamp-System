@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MapPin, Plus, Edit2, Trash2, Phone, Clock, QrCode, Ban } from 'lucide-vue-next'
+import { MapPin, MapPinned, Plus, Edit2, Trash2, Phone, Clock, QrCode, Ban } from 'lucide-vue-next'
 import type { AdminStation } from '~/stores/admin'
 
 const admin = useAdminStore()
@@ -23,6 +23,14 @@ const formOpen = ref(false)
 const editingId = ref('')
 const saving = ref(false)
 const uploading = ref(false)
+const pickerOpen = ref(false)
+
+// 地圖／連結選完座標寫回表單
+function applyPickedCoords(pos: { lat: number; lng: number }) {
+  form.lat = pos.lat
+  form.lng = pos.lng
+  pickerOpen.value = false
+}
 
 const emptyForm = () => ({
   name: '',
@@ -348,8 +356,16 @@ async function doDelete() {
             />
           </label>
         </div>
-        <p class="text-xs text-gray-400 -mt-2">
-          可在 Google 地圖上對地點按右鍵複製座標。座標不準會導致地理圍籬誤擋。
+        <button
+          type="button"
+          class="-mt-2 self-start flex items-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs transition-colors"
+          @click="pickerOpen = true"
+        >
+          <MapPinned class="w-4 h-4" />
+          用地圖 / 連結設定座標
+        </button>
+        <p class="text-xs text-gray-400 -mt-1">
+          可貼上 Google 地圖連結自動解析，或直接在地圖上點選；也能手動輸入。座標不準會導致地理圍籬誤擋。
         </p>
 
         <label class="flex flex-col gap-1.5">
@@ -399,6 +415,14 @@ async function doDelete() {
         </button>
       </template>
     </AdminModal>
+
+    <AdminMapPicker
+      v-if="pickerOpen"
+      :lat="form.lat"
+      :lng="form.lng"
+      @confirm="applyPickedCoords"
+      @cancel="pickerOpen = false"
+    />
 
     <AdminConfirm
       v-if="confirmTarget"

@@ -55,6 +55,14 @@ npx vercel --prod --yes --scope jolihi   # 部署到 production（需先 vercel 
 - **資料流**：`stores/*` → `$fetch('/api/...')` → Nitro handler → Mongoose → MongoDB。
 - **驗證/安全**：HMAC 簽章 session cookie（`server/utils/auth.ts`）、半靜態簽章 QR（`server/utils/qr.ts`）、GPS 圍籬（`server/utils/geo.ts`）、網域分離防護（`server/middleware/0.admin-host-guard.ts`，選配）。
 
+### 前台網址參數
+| 參數 | 說明 |
+|------|------|
+| `/?s=<token>` | 掃碼落地：自動集章並停在集章卡（手機內建相機掃 QR 會開這個） |
+| `/?c=<campaignId>` | **活動入口連結**：直接載入指定活動，不受「預設取最新一檔」影響。後台 QR 分頁可產生連結與 QR |
+
+兩者用完都會從網址上清掉，避免重新整理時重送。
+
 ### API 端點
 | 方法 路徑 | 說明 |
 |-----------|------|
@@ -74,7 +82,8 @@ npx vercel --prod --yes --scope jolihi   # 部署到 production（需先 vercel 
 | `GET/POST /api/admin/stations`、`PUT/DELETE /api/admin/stations/:id` | 集章點 CRUD（`?campaignId=` 篩選）。POST 自動產 `qrSecret`；有集章紀錄時不可刪（409） |
 | `GET/POST /api/admin/rewards`、`PUT/DELETE /api/admin/rewards/:id` | 獎項 CRUD；已被領取的獎項不可刪（409） |
 | `GET /api/admin/qr` | `?campaignId=` 各點 QR token（`v1.<stationId>.<hmac>`；前端 `AdminQrCodes.vue` 再把它包成掃碼網址 `<siteUrl>/?s=<token>` 才畫成 QR） |
-| `POST /api/admin/upload` | multipart 圖片上傳 → 寫入 `public/uploads/`，回傳 `/uploads/xxx` |
+| `POST /api/admin/upload` | multipart 圖片上傳 → Vercel Blob 或 `public/uploads/`（見雷區） |
+| `POST /api/admin/resolve-map-link` | `{ url }` → `{ lat, lng }`。貼 Google 地圖連結解析座標，會展開 `maps.app.goo.gl` 短網址。**有網域白名單**（見雷區） |
 
 ## 5. 核心資料夾
 
@@ -88,7 +97,8 @@ components/            Vue 元件（自動匯入）
                             StampCard / RewardsList / Scanner /
                             DetailBottomSheet / ListBottomSheet
                       後台：AdminCampaigns / AdminStations / AdminRewards /
-                            AdminQrCodes / AdminMarketMap / AdminModal / AdminConfirm
+                            AdminQrCodes / AdminMarketMap / AdminMapPicker /
+                            AdminModal / AdminConfirm
 composables/          useAdminToast.ts（後台共用提示，跨元件用 useState 共享）
 utils/                前端自動匯入：qrToken.ts（掃到的網址/純 token → token）、
                       stampGeo.ts（集章要不要抓 GPS，Scanner 與掃碼落地共用）
@@ -146,7 +156,8 @@ Tenant → Campaign → Station／Reward；User；StampRecord（`(userId,station
 - **手機測試一定要 HTTPS**：相機需 HTTPS，而且 iPhone Safari 的 HTTPS-Only 連純粹「開一個區網 http 網址」都會擋，所以 `http://<電腦IP>:3000` 這條路整條不能用。測正式站連 Vercel 網址；測本機未部署的版本走 `npm run tunnel`（cloudflared HTTPS 通道，見第 3 節測試慣例）。
 - **前台已無點擊集章的測試面板**（掃描頁只剩真實相機解碼）。`/api/dev/tokens` 端點仍在但已無人呼叫，正式站本來就回 404。
 - **圍籬要開就兩個 env 一起開**：`NUXT_GEOFENCE_ENFORCE`（後端擋）與 `NUXT_PUBLIC_GEOFENCE_ENFORCE`（前端才會去抓 GPS）。只開後端會變成前端不送座標、後端一律擋下。
-- **QR 網址靠 `NUXT_PUBLIC_SITE_URL`**：留空時後台會拿當下 origin 組網址，前後台分域部署會編到後台網域 → 民眾掃了開錯站。分域時務必設成前台網址。舊版（純 token）QR 需**重印**才支援手機內建相機，站內掃描器則兩種都能掃。
+- **`resolve-map-link` 會對外發請求，網域白名單是防 SSRF 的**：`ALLOWED_HOSTS` 用「完全相等或為其子網域」比對，**絕不可改成 `includes`／裸 `endsWith`**，否則 `google.com.evil.tw` 會過關，端點就變成打內網的跳板。展開短網址後會再驗一次白名單（防轉址逃逸）。
+- **QR 網址與活動入口連結都靠 `NUXT_PUBLIC_SITE_URL`**（`AdminQrCodes.vue` 的 `siteBase()`）：留空時後台會拿當下 origin 組網址，前後台分域部署會編到後台網域 → 民眾掃了開錯站。分域時務必設成前台網址。舊版（純 token）QR 需**重印**才支援手機內建相機，站內掃描器則兩種都能掃。
 - **核銷已無 QR／核銷碼／`/verify` 頁**：改成工作人員在民眾手機上按「工作人員點選核銷」→ 輸入通行碼 → 「確認核銷」，`POST /api/reward/redeem` 一次完成領取與核銷。Redemption 仍會產生 `code`（欄位 required + unique），但只作為對帳用的紀錄編號，不再給人掃。因此**庫存只會扣一次**，且不存在 `pending` 狀態的兌換紀錄。
 - **圖片上傳走 Vercel Blob**：`admin/upload.post.ts` 看 `BLOB_READ_WRITE_TOKEN`——有值就存到 Blob（回傳絕對網址），留空就寫本機 `public/uploads/`（回傳 `/uploads/xxx`）。**線上一定要設 token**，serverless 檔案系統唯讀，寫本機路徑會壞。本機開發不設也能上傳。「貼圖片網址」的欄位仍保留，供圖片已在別處時直接引用。
 - **市集版靠 `campaign.type` 驅動**：`/api/campaign/current` 必須回傳 `type` 與 `marketMapUrl`，前台才知道要渲染哪一種地圖。市集分頁**只有平面圖本身**（攤位標記與 `station.mapCoord` 已於 2026/08 移除），要進攤位詳情走左下角清單。DB 舊文件殘留的 `mapCoord` 欄位不影響讀取（schema 已無此欄位）。

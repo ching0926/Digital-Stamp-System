@@ -87,8 +87,13 @@ async function collectFromUrl() {
 onMounted(async () => {
   try {
     await ensureAuth()
-    await campaign.load()
+    // `/?c=<campaignId>` 是後台產的活動入口連結；沒帶就沿用上次看的那一檔
+    const entryCampaignId = String(route.query.c ?? '')
+    const hasScanToken = Boolean(route.query.s)
+    await campaign.load(entryCampaignId || undefined)
     await collectFromUrl()
+    // collectFromUrl 只在有 ?s= 時才清網址，單獨用入口連結進來的要自己清
+    if (entryCampaignId && !hasScanToken) await router.replace({ query: {} })
   } catch (err: unknown) {
     const e = err as { data?: { message?: string }; statusMessage?: string }
     bootError.value = e.data?.message ?? e.statusMessage ?? '載入失敗，請稍後再試'

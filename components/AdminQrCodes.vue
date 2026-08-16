@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import QRCode from 'qrcode'
-import { QrCode, Download, Printer } from 'lucide-vue-next'
+import { QrCode, Download, Printer, Link as LinkIcon, Copy } from 'lucide-vue-next'
 import type { AdminQrStation } from '~/stores/admin'
 
 const admin = useAdminStore()
@@ -10,11 +10,48 @@ const { public: publicConfig } = useRuntimeConfig()
 // stationId → QR data URL。token 穩定不變，算過就快取
 const qrMap = ref<Record<string, string>>({})
 
-// QR 編的是掃碼網址，民眾用手機內建相機掃就能開站集章。
-// 前後台分域時 origin 會是後台網域，故以 NUXT_PUBLIC_SITE_URL 優先
+// 前後台分域時 origin 會是後台網域，故以 NUXT_PUBLIC_SITE_URL 優先。
+// 入口連結與各點 QR 都靠它組網址，只留這一份
+function siteBase() {
+  return String(publicConfig.siteUrl || window.location.origin).replace(/\/$/, '')
+}
+
+// QR 編的是掃碼網址，民眾用手機內建相機掃就能開站集章
 function scanUrl(token: string) {
-  const base = String(publicConfig.siteUrl || window.location.origin).replace(/\/$/, '')
-  return `${base}/?s=${token}`
+  return `${siteBase()}/?s=${token}`
+}
+
+// 活動入口連結：帶 ?c= 讓前台直接載入這一檔活動，而不是預設的最新一檔。
+// siteBase() 會讀 window，SSR 階段先回空字串，hydration 後才算得出來
+const entryUrl = computed(() =>
+  import.meta.client && admin.activeCampaignId ? `${siteBase()}/?c=${admin.activeCampaignId}` : '',
+)
+const entryQr = ref('')
+
+async function renderEntryQr() {
+  entryQr.value = entryUrl.value
+    ? await QRCode.toDataURL(entryUrl.value, { margin: 1, width: 320 })
+    : ''
+}
+
+async function copyEntryUrl() {
+  try {
+    await navigator.clipboard.writeText(entryUrl.value)
+    toast('已複製活動入口連結')
+  } catch {
+    // 非 HTTPS 或瀏覽器擋下時沒有剪貼簿權限，讓使用者自己選取
+    showError(null, '無法自動複製，請手動選取上方網址')
+  }
+}
+
+function downloadEntryQr() {
+  if (!entryQr.value) return
+  const a = document.createElement('a')
+  a.href = entryQr.value
+  a.download = `entry-${admin.activeCampaign?.title || 'campaign'}.png`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 
 async function renderAll() {
@@ -31,6 +68,8 @@ async function renderAll() {
 
 onMounted(renderAll)
 watch(() => admin.qrStations, renderAll, { deep: true })
+// 切換活動時入口連結會變，QR 要跟著重畫
+watch(entryUrl, renderEntryQr, { immediate: true })
 
 function download(station: AdminQrStation) {
   const url = qrMap.value[station.id]
@@ -77,6 +116,42 @@ function doToggle() {
       <p class="text-xs text-gray-400 mt-1">
         下載後列印張貼於各{{ admin.unitLabel }}，供民眾掃描集章。QR 內容固定不變，可長期使用。
       </p>
+    </div>
+
+    <!-- 活動入口：給別人連結或掃碼直接進到「這一檔」活動的前台 -->
+    <div v-if="entryUrl" class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex flex-col sm:flex-row gap-5">
+      <div class="flex-1 min-w-0 flex flex-col gap-2">
+        <h3 class="text-sm font-black text-gray-800 flex items-center gap-1.5">
+          <LinkIcon class="w-4 h-4 text-emerald-600" />
+          活動入口
+        </h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          分享這個連結或 QR，對方開啟後會直接進入「{{ admin.activeCampaign?.title }}」的前台，不受目前預設活動影響。
+        </p>
+        <p class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 break-all select-all">
+          {{ entryUrl }}
+        </p>
+        <div class="flex gap-2">
+          <button
+            class="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs transition-colors"
+            @click="copyEntryUrl"
+          >
+            <Copy class="w-4 h-4" />
+            複製連結
+          </button>
+          <button
+            class="flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold rounded-xl text-xs transition-colors"
+            @click="downloadEntryQr"
+          >
+            <Download class="w-4 h-4" />
+            下載 QR
+          </button>
+        </div>
+      </div>
+      <div class="shrink-0 self-center p-3 bg-white rounded-xl border border-gray-100">
+        <img v-if="entryQr" :src="entryQr" alt="活動入口 QR" class="w-32 h-32" />
+        <div v-else class="w-32 h-32 bg-gray-50 animate-pulse rounded" />
+      </div>
     </div>
 
     <p
