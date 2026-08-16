@@ -73,7 +73,7 @@ const display = computed(() => ({
 <template>
   <!-- z-[60]：要蓋過 AdminModal(z-50) 的編輯表單，但別擋到 toast(z-[70]) -->
   <div class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-6">
-    <div class="bg-white w-full sm:max-w-3xl rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[88dvh]">
+    <div class="bg-white w-full sm:max-w-6xl rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col h-[94dvh] sm:h-[90dvh]">
       <div class="flex items-start justify-between gap-4 p-5 border-b border-gray-100 shrink-0">
         <div>
           <h3 class="text-base font-black text-gray-800">設定座標</h3>
@@ -88,9 +88,10 @@ const display = computed(() => ({
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+      <!-- min-h-0 是必要的：沒有它，地圖的 flex-1 撐不開 -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-5 flex flex-col gap-3">
         <!-- 方式一：貼連結 -->
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-col gap-1.5 shrink-0">
           <span class="text-xs font-bold text-gray-600 flex items-center gap-1.5">
             <Link2 class="w-4 h-4 text-emerald-600" />
             貼上 Google 地圖連結
@@ -120,12 +121,14 @@ const display = computed(() => ({
 
         <!-- 方式二：點地圖 -->
         <ClientOnly>
-          <div v-if="!apiKey" class="h-72 rounded-2xl border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2 text-center p-6">
+          <div v-if="!apiKey" class="flex-1 min-h-[440px] rounded-2xl border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2 text-center p-6">
             <MapPin class="w-8 h-8 text-gray-300" />
             <p class="text-xs font-bold text-gray-500">尚未設定 Google Maps API key</p>
             <p class="text-2xs text-gray-400">請在 <code class="font-mono">.env</code> 填入 NUXT_PUBLIC_GOOGLE_MAPS_API_KEY，或改用上方貼連結。</p>
           </div>
-          <div v-else class="h-72 sm:h-80 rounded-2xl overflow-hidden border border-gray-100">
+          <!-- 地圖優先佔空間：高螢幕由 flex-1 撐大，矮螢幕保底 440px 讓內容區往下捲，
+               不要為了塞進視窗把地圖壓小 -->
+          <div v-else class="flex-1 min-h-[440px] rounded-2xl overflow-hidden border border-gray-100">
             <GoogleMap
               ref="mapRef"
               :api-key="apiKey"
@@ -147,16 +150,16 @@ const display = computed(() => ({
           </div>
         </ClientOnly>
 
-        <p class="text-2xs text-gray-400 -mt-1">在地圖上點一下即可把圖釘移到該位置。</p>
+        <p class="text-2xs text-gray-400 shrink-0">在地圖上點一下即可把圖釘移到該位置。</p>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <span class="text-2xs font-bold text-gray-500">緯度 lat</span>
-            <span class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono">{{ display.lat }}</span>
+        <div class="grid grid-cols-2 gap-3 shrink-0">
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl">
+            <span class="text-2xs font-bold text-gray-500 shrink-0">緯度</span>
+            <span class="text-sm font-mono text-gray-700 truncate">{{ display.lat }}</span>
           </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-2xs font-bold text-gray-500">經度 lng</span>
-            <span class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono">{{ display.lng }}</span>
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl">
+            <span class="text-2xs font-bold text-gray-500 shrink-0">經度</span>
+            <span class="text-sm font-mono text-gray-700 truncate">{{ display.lng }}</span>
           </div>
         </div>
       </div>
