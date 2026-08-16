@@ -72,6 +72,8 @@ export default defineEventHandler(async (event) => {
   return {
     ok: true,
     alreadyCollected,
+    // 前台可能正停在另一檔活動（兩檔同時進行時），要靠這個切過去
+    campaignId: station.campaignId.toString(),
     stationId: station._id.toString(),
     stationName: station.name,
     collectedStationIds: collected.map((s) => s.stationId.toString()),

@@ -186,7 +186,7 @@ async function doDelete() {
             <MapPin class="w-8 h-8" />
           </div>
           <span
-            class="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm"
+            class="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 rounded-lg text-2xs font-bold shadow-sm"
             :class="station.noStamp ? 'bg-gray-700/85 text-white' : 'bg-emerald-600/90 text-white'"
           >
             <component :is="station.noStamp ? Ban : QrCode" class="w-3 h-3" />
@@ -197,14 +197,14 @@ async function doDelete() {
         <div class="p-4 flex flex-col gap-2 flex-1">
           <div>
             <h4 class="font-black text-gray-800 text-sm">{{ station.name }}</h4>
-            <p v-if="station.title" class="text-[11px] text-emerald-700 font-bold mt-0.5">
+            <p v-if="station.title" class="text-xs text-emerald-700 font-bold mt-0.5">
               {{ station.title }}
             </p>
           </div>
-          <p v-if="station.address" class="text-[11px] text-gray-500 line-clamp-1">
+          <p v-if="station.address" class="text-xs text-gray-500 line-clamp-1">
             {{ station.address }}
           </p>
-          <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-400">
+          <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-400">
             <span v-if="station.phone" class="flex items-center gap-1">
               <Phone class="w-3 h-3" />{{ station.phone }}
             </span>
@@ -212,7 +212,7 @@ async function doDelete() {
               <Clock class="w-3 h-3" />{{ station.hours }}
             </span>
           </div>
-          <p class="text-[10px] text-gray-400 font-mono mt-auto pt-1">
+          <p class="text-2xs text-gray-400 font-mono mt-auto pt-1">
             GPS {{ station.geo.lat.toFixed(5) }}, {{ station.geo.lng.toFixed(5) }}
           </p>
 
@@ -242,67 +242,9 @@ async function doDelete() {
       subtitle="名稱為必填，其餘欄位可稍後補上"
       @close="formOpen = false"
     >
+      <!-- 欄位順序刻意對齊前台 DetailBottomSheet 的呈現順序：
+           照片 → 名稱 → 副標題 → 類型 → 聯絡資訊 → 探索此地 → 私房亮點 -->
       <form id="station-form" class="flex flex-col gap-4" @submit.prevent="save">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">{{ admin.unitLabel }}名稱 *</span>
-            <input
-              v-model="form.name"
-              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
-              placeholder="例：聚德宮"
-            />
-          </label>
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">副標題</span>
-            <input
-              v-model="form.title"
-              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
-              placeholder="例：百年信仰中心"
-            />
-          </label>
-        </div>
-
-        <label class="flex flex-col gap-1.5">
-          <span class="text-xs font-bold text-gray-600">介紹</span>
-          <textarea
-            v-model="form.description"
-            rows="3"
-            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white resize-none"
-          />
-        </label>
-
-        <label class="flex flex-col gap-1.5">
-          <span class="text-xs font-bold text-gray-600">地址</span>
-          <input
-            v-model="form.address"
-            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
-          />
-        </label>
-
-        <div class="grid grid-cols-2 gap-3">
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">緯度 lat</span>
-            <input
-              v-model.number="form.lat"
-              type="number"
-              step="0.000001"
-              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:border-emerald-400 focus:bg-white"
-            />
-          </label>
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">經度 lng</span>
-            <input
-              v-model.number="form.lng"
-              type="number"
-              step="0.000001"
-              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:border-emerald-400 focus:bg-white"
-            />
-          </label>
-        </div>
-        <p class="text-[11px] text-gray-400 -mt-2">
-          可在 Google 地圖上對地點按右鍵複製座標。座標不準會導致地理圍籬誤擋。
-        </p>
-
         <div class="flex flex-col gap-1.5">
           <span class="text-xs font-bold text-gray-600">照片</span>
           <div class="flex gap-2">
@@ -327,38 +269,49 @@ async function doDelete() {
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">類型</span>
+            <span class="text-xs font-bold text-gray-600">{{ admin.unitLabel }}名稱 *</span>
             <input
-              v-model="form.type"
-              list="station-types"
+              v-model="form.name"
               class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
-              placeholder="例：古蹟廟宇"
+              placeholder="例：聚德宮"
             />
-            <datalist id="station-types">
-              <option value="古蹟廟宇" />
-              <option value="人文歷史" />
-              <option value="美食小吃" />
-              <option value="特色商家" />
-              <option value="市集攤位" />
-            </datalist>
           </label>
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">特色 / 招牌</span>
+            <span class="text-xs font-bold text-gray-600">副標題</span>
             <input
-              v-model="form.specialty"
+              v-model="form.title"
               class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
+              placeholder="例：百年信仰中心"
             />
           </label>
         </div>
 
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold text-gray-600">類型</span>
+          <input
+            v-model="form.type"
+            list="station-types"
+            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
+            placeholder="例：古蹟廟宇"
+          />
+          <datalist id="station-types">
+            <option value="古蹟廟宇" />
+            <option value="人文歷史" />
+            <option value="美食小吃" />
+            <option value="特色商家" />
+            <option value="市集攤位" />
+          </datalist>
+        </label>
+
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold text-gray-600">地址</span>
+          <input
+            v-model="form.address"
+            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
+          />
+        </label>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">電話</span>
-            <input
-              v-model="form.phone"
-              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
-            />
-          </label>
           <label class="flex flex-col gap-1.5">
             <span class="text-xs font-bold text-gray-600">營業時間</span>
             <input
@@ -366,7 +319,56 @@ async function doDelete() {
               class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
             />
           </label>
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-bold text-gray-600">電話</span>
+            <input
+              v-model="form.phone"
+              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
+            />
+          </label>
         </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-bold text-gray-600">緯度 lat</span>
+            <input
+              v-model.number="form.lat"
+              type="number"
+              step="0.000001"
+              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:border-emerald-400 focus:bg-white"
+            />
+          </label>
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-bold text-gray-600">經度 lng</span>
+            <input
+              v-model.number="form.lng"
+              type="number"
+              step="0.000001"
+              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:border-emerald-400 focus:bg-white"
+            />
+          </label>
+        </div>
+        <p class="text-xs text-gray-400 -mt-2">
+          可在 Google 地圖上對地點按右鍵複製座標。座標不準會導致地理圍籬誤擋。
+        </p>
+
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold text-gray-600">探索此地</span>
+          <textarea
+            v-model="form.description"
+            rows="3"
+            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white resize-none"
+          />
+        </label>
+
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold text-gray-600">私房亮點</span>
+          <textarea
+            v-model="form.specialty"
+            rows="2"
+            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white resize-none"
+          />
+        </label>
 
         <label
           class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer"

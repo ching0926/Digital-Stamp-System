@@ -171,15 +171,15 @@ onBeforeUnmount(() => clearTimeout(bannerTimer))
       <div class="h-20 bg-white border-t border-gray-100 flex items-center justify-around px-4 pb-[env(safe-area-inset-bottom)] shrink-0 z-30">
         <button class="flex flex-col items-center gap-1 py-1 px-6 transition-all duration-300" :class="activeTab === 'card' ? 'text-[#FF8C00] scale-105 font-bold' : 'text-gray-400 hover:text-gray-600'" @click="activeTab = 'card'">
           <Award class="w-5 h-5" />
-          <span class="text-[10px] font-extrabold tracking-tight">集章卡</span>
+          <span class="text-xs font-extrabold tracking-tight">集章卡</span>
         </button>
         <button class="flex flex-col items-center gap-1 py-1 px-6 transition-all duration-300" :class="activeTab === 'map' ? 'text-[#FF8C00] scale-105 font-bold' : 'text-gray-400 hover:text-gray-600'" @click="activeTab = 'map'">
           <MapIcon class="w-5 h-5" />
-          <span class="text-[10px] font-extrabold tracking-tight">{{ campaign.isMarket ? '市集地圖' : '探索地圖' }}</span>
+          <span class="text-xs font-extrabold tracking-tight">活動地圖</span>
         </button>
         <button class="flex flex-col items-center gap-1 py-1 px-6 transition-all duration-300" :class="activeTab === 'rewards' ? 'text-[#FF8C00] scale-105 font-bold' : 'text-gray-400 hover:text-gray-600'" @click="activeTab = 'rewards'">
           <Gift class="w-5 h-5" />
-          <span class="text-[10px] font-extrabold tracking-tight">獎項兌換</span>
+          <span class="text-xs font-extrabold tracking-tight">獎項兌換</span>
         </button>
       </div>
 

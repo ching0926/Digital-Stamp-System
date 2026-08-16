@@ -4,6 +4,25 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* 全站字級只在這裡調整，前後台一起生效。整體較 Tailwind 預設大約 1px；
+     要再放大就把下面的值一起往上加，不要回頭在元件裡寫 text-[12px] 這種硬值 */
+  --text-3xs: 0.75rem; /* 12px：徽章、極小註記 */
+  --text-3xs--line-height: 1.4;
+  --text-2xs: 0.8125rem; /* 13px：次要說明 */
+  --text-2xs--line-height: 1.4;
+  --text-xs: 0.9375rem; /* 15px（Tailwind 預設 12px）：表單標籤、卡片內文、前台底部分頁 */
+  --text-xs--line-height: 1.45;
+  --text-sm: 1.0625rem; /* 17px（預設 14px） */
+  --text-sm--line-height: 1.5;
+  --text-base: 1.1875rem; /* 19px（預設 16px） */
+  --text-base--line-height: 1.55;
+  --text-lg: 1.3125rem; /* 21px（預設 18px） */
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.4375rem; /* 23px（預設 20px） */
+  --text-xl--line-height: 1.45;
+  --text-2xl: 1.6875rem; /* 27px（預設 24px） */
+  --text-2xl--line-height: 1.35;
 }
 
 html,

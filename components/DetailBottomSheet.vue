@@ -59,7 +59,7 @@ function openDirections() {
               </div>
               <button class="flex flex-col items-center justify-center p-3 bg-orange-50 hover:bg-orange-100 text-[#FF8C00] rounded-[24px] active:scale-95 transition-all" title="開啟 Google 地圖導航" @click="openDirections">
                 <Navigation class="w-5 h-5" />
-                <span class="text-[10px] font-bold mt-1">導航</span>
+                <span class="text-2xs font-bold mt-1">導航</span>
               </button>
             </div>
 

@@ -50,6 +50,28 @@ interface CampaignPayload {
   redemptions: Redemption[]
 }
 
+// 記住民眾最後看的那一檔活動。兩檔同時進行時，掃碼會切換活動，
+// 沒有這個的話重新整理又會跳回「最新一檔」，集章卡就對不上了。
+const CAMPAIGN_KEY = 'jiuli-hai:campaign-id'
+
+function readStoredCampaignId(): string {
+  if (!import.meta.client) return ''
+  try {
+    return localStorage.getItem(CAMPAIGN_KEY) ?? ''
+  } catch {
+    return '' // 無痕模式或封鎖 storage 時不該讓前台整個掛掉
+  }
+}
+
+function storeCampaignId(id: string) {
+  if (!import.meta.client) return
+  try {
+    localStorage.setItem(CAMPAIGN_KEY, id)
+  } catch {
+    /* 同上，存不進去就算了 */
+  }
+}
+
 export const useCampaignStore = defineStore('campaign', {
   state: () => ({
     campaignId: '' as string,
@@ -87,10 +109,16 @@ export const useCampaignStore = defineStore('campaign', {
       state.redemptions.find((r) => r.rewardId === rewardId) ?? null,
   },
   actions: {
-    async load() {
+    // campaignId 留空 = 沿用上次看的那一檔（沒有就由後端給最新一檔）
+    async load(campaignId?: string) {
       this.loading = true
       try {
-        const data = await $fetch<CampaignPayload>('/api/campaign/current')
+        const target = campaignId || readStoredCampaignId()
+        const data = await $fetch<CampaignPayload>('/api/campaign/current', {
+          query: target ? { campaignId: target } : undefined,
+        })
+        // 以回傳的為準：指定的活動若已結束，後端會退回別檔
+        storeCampaignId(data.campaign.id)
         this.campaignId = data.campaign.id
         this.title = data.campaign.title
         this.campaignType = data.campaign.type ?? 'district'
@@ -111,13 +139,20 @@ export const useCampaignStore = defineStore('campaign', {
       const res = await $fetch<{
         ok: boolean
         alreadyCollected: boolean
+        campaignId: string
         stationName: string
         collectedStationIds: string[]
       }>('/api/stamp/collect', {
         method: 'POST',
         body: { token, lat: geo?.lat, lng: geo?.lng },
       })
-      this.collectedStationIds = res.collectedStationIds
+      // 兩檔活動同時進行時，掃到別檔的 QR 就整個切過去。
+      // 不切的話章記在 A 活動、畫面停在 B，集章卡會顯示錯的點與進度。
+      if (res.campaignId && res.campaignId !== this.campaignId) {
+        await this.load(res.campaignId)
+      } else {
+        this.collectedStationIds = res.collectedStationIds
+      }
       return res
     },
 

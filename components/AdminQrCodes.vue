@@ -94,7 +94,7 @@ function doToggle() {
       >
         <div class="text-center">
           <h4 class="text-sm font-black text-gray-800">{{ station.name }}</h4>
-          <span v-if="station.type" class="text-[10px] text-gray-400">{{ station.type }}</span>
+          <span v-if="station.type" class="text-2xs text-gray-400">{{ station.type }}</span>
         </div>
 
         <template v-if="station.noStamp">
@@ -144,7 +144,7 @@ function doToggle() {
       </div>
     </div>
 
-    <p class="text-[11px] text-gray-400 flex items-center gap-1.5">
+    <p class="text-xs text-gray-400 flex items-center gap-1.5">
       <Printer class="w-3.5 h-3.5" />
       也可用 npm run qrsheet 產生一張含全部 QR 的列印表。
     </p>

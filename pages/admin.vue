@@ -92,7 +92,7 @@ async function switchTab(tab: Tab) {
   }
 }
 
-// 市集平面圖分頁只在市集類型活動出現
+// 活動地圖分頁只在市集類型活動出現
 const showMarketMapTab = computed(() => admin.activeCampaign?.type === 'market')
 
 const tabs = computed(() => {
@@ -102,7 +102,7 @@ const tabs = computed(() => {
     { key: 'qrcode', label: 'QR code', icon: QrCode },
   ]
   if (showMarketMapTab.value) {
-    list.push({ key: 'market-map', label: '市集平面圖', icon: ImageIcon })
+    list.push({ key: 'market-map', label: '活動地圖', icon: ImageIcon })
   }
   return list
 })

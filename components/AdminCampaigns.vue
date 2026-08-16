@@ -163,7 +163,7 @@ async function doDelete() {
         <table class="w-full text-left border-collapse min-w-[820px]">
           <thead>
             <tr
-              class="bg-gray-50 border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-500 font-bold"
+              class="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-bold"
             >
               <th class="p-4 w-1/3">活動名稱</th>
               <th class="p-4 w-24">類別</th>
@@ -190,7 +190,7 @@ async function doDelete() {
                 <div class="font-bold text-gray-800 group-hover:text-emerald-700 line-clamp-2">
                   {{ camp.title }}
                 </div>
-                <div v-if="camp.description" class="text-[11px] text-gray-400 line-clamp-1 mt-0.5">
+                <div v-if="camp.description" class="text-xs text-gray-400 line-clamp-1 mt-0.5">
                   {{ camp.description }}
                 </div>
               </td>
@@ -216,7 +216,7 @@ async function doDelete() {
               <td class="p-4">
                 <select
                   :value="camp.status"
-                  class="text-[11px] font-bold px-2 py-1 rounded border focus:outline-none cursor-pointer"
+                  class="text-xs font-bold px-2 py-1 rounded border focus:outline-none cursor-pointer"
                   :class="
                     camp.status === 'active'
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
@@ -341,7 +341,7 @@ async function doDelete() {
             class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono tracking-[0.3em] focus:outline-none focus:border-emerald-400 focus:bg-white"
             placeholder="例：1234"
           />
-          <span class="text-[11px] text-gray-400">
+          <span class="text-xs text-gray-400">
             民眾兌換獎項時，由現場工作人員在民眾手機上輸入這組碼完成核銷。留空則沿用系統預設核銷碼。
           </span>
         </label>
@@ -356,7 +356,7 @@ async function doDelete() {
             <option value="active">啟用中</option>
             <option value="ended">已封存</option>
           </select>
-          <span class="text-[11px] text-gray-400">
+          <span class="text-xs text-gray-400">
             前台目前顯示最新一檔「啟用中」的活動。
           </span>
         </label>

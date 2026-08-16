@@ -40,7 +40,7 @@ const campaign = useCampaignStore()
               </div>
               <div class="min-w-0">
                 <h3 class="text-xs font-bold text-gray-900 truncate">{{ loc.name }}</h3>
-                <p class="text-[10px] text-[#FF8C00] font-medium mt-0.5 truncate">{{ loc.title }}</p>
+                <p class="text-2xs text-[#FF8C00] font-medium mt-0.5 truncate">{{ loc.title }}</p>
               </div>
             </div>
             <span

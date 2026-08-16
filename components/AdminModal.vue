@@ -17,7 +17,7 @@ const emit = defineEmits<{ close: [] }>()
       <div class="flex items-start justify-between gap-4 p-5 border-b border-gray-100 shrink-0">
         <div>
           <h3 class="text-base font-black text-gray-800">{{ title }}</h3>
-          <p v-if="subtitle" class="text-[11px] text-gray-400 mt-0.5">{{ subtitle }}</p>
+          <p v-if="subtitle" class="text-xs text-gray-400 mt-0.5">{{ subtitle }}</p>
         </div>
         <button
           type="button"

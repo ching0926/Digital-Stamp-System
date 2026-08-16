@@ -19,7 +19,7 @@
 - ✅ **已完成（後台 `/admin`）**：通行碼登入、多活動 CRUD（含商圈/市集分類、狀態切換、**逐活動 4 碼核銷碼**）、集章點 CRUD、獎項 CRUD、QR 產生下載、市集平面圖上傳（**僅本機有效**，見雷區）。
 - ✅ **已驗證**：typecheck 0 錯誤、production build 通過、**線上全流程實測**（訪客身分→掃 QR 集章→重複掃提示→領獎→核銷）、跨帳號隔離實測（A/B 兩個匿名身分各自能領同一獎項，同一人重領回 409）、後台 API 全端點實測（含 401 擋、409 刪除保護）。
 - ✅ **已完成（市集版）**：前台依 `campaign.type` 自動切換——`market` 只顯示一張可平移縮放的平面圖（`MarketMapView.vue`，**已無攤位標記**，攤位改由左下角清單進入），`district` 維持 Google 地圖（`MapView.vue`）。前台用語（景點／攤位）隨類型變動。
-- 🚧 **未做**：LINE LIFF 身分接入、圖片上傳改物件儲存、前台多活動切換（目前固定取最新一檔 active）、數據分析、多租戶管理介面。
+- 🚧 **未做**：LINE LIFF 身分接入、**前台手動切換活動的 UI**（掃碼會自動切過去，但民眾無法自己切回另一檔）、數據分析、多租戶管理介面。
 - ⚠️ **注意**：`server/data/kaladziah.ts` 的 GPS 座標為近似值；若要啟用圍籬（`NUXT_GEOFENCE_ENFORCE=true`）需先實地校正，否則會誤擋。啟用時**兩個 env 要一起開**（見第 8 節）。
 
 ## 3. 常用指令
@@ -60,8 +60,8 @@ npx vercel --prod --yes --scope jolihi   # 部署到 production（需先 vercel 
 |-----------|------|
 | `POST /api/auth/login` | 有 session 就沿用，否則開一個匿名帳號 → 發 session |
 | `GET /api/auth/me`、`POST /api/auth/logout` | 讀取 / 清除登入 |
-| `GET /api/campaign/current` | 活動 + 集章點 + 獎項 + 使用者狀態 |
-| `POST /api/stamp/collect` | QR 驗證 +（可選）GPS 圍籬 + 去重 → 集章 |
+| `GET /api/campaign/current` | 活動 + 集章點 + 獎項 + 使用者狀態。可帶 `?campaignId=` 指定活動；該活動查無或已結束時**退回最新一檔**而非報錯 |
+| `POST /api/stamp/collect` | QR 驗證 +（可選）GPS 圍籬 + 去重 → 集章。回傳含 `campaignId`（QR 所屬活動），前台據此切換 |
 | `POST /api/reward/redeem` | **現場核銷**：`{ rewardId, staffKey }`，驗核銷碼（活動的 4 碼 PIN 優先，未設才用 env）+ 門檻 + 每人上限 + 扣庫存，**一次完成領取與核銷**（防重複，409；同一使用者連錯 5 次鎖 5 分鐘，429） |
 | `GET /api/dev/tokens` | 僅 dev：各點 QR token（現已無人呼叫，正式站回 404） |
 | `GET /api/health` | DB 連線檢查 |
@@ -79,7 +79,7 @@ npx vercel --prod --yes --scope jolihi   # 部署到 production（需先 vercel 
 ## 5. 核心資料夾
 
 ```
-assets/css/main.css   Tailwind v4 進入點 + 全域樣式（字型、scanline 動畫）
+assets/css/main.css   Tailwind v4 進入點 + 全域樣式（字型、**全站字級 token**、scanline 動畫）
 pages/
   index.vue           主 App（自動登入 → 地圖/集章卡/獎項分頁殼層）
   admin.vue           營運後台（通行碼 gate + 側欄 + toast，分頁由下列元件組成）
@@ -130,6 +130,7 @@ Tenant → Campaign → Station／Reward；User；StampRecord（`(userId,station
 - template 事件用 kebab（`@open-scanner`），emit 定義用 camelCase（`openScanner`）。
 - 不手動 import 元件／composable／store（自動匯入）；`type` 匯入才寫 `import type`。
 - 樣式用 Tailwind utility class 直接寫在 template；主色 `#FF8C00`（橘）、輔色 `#10B981`（綠）；滿版容器用 `h-[100dvh]`。
+- **字級一律用 token utility**（`text-3xs` / `text-2xs` / `text-xs` / `text-sm` / `text-base` / `text-lg` / `text-xl` / `text-2xl`），**不要寫 `text-[11px]` 這種硬值**——全站字級定義在 `assets/css/main.css` 的 `@theme`，要整體放大縮小只改那裡；寫死 px 的地方調不到。
 
 **後端**
 - handler 用 `defineEventHandler`；輸入用 `readBody`/`getQuery` 並驗證。
@@ -147,16 +148,18 @@ Tenant → Campaign → Station／Reward；User；StampRecord（`(userId,station
 - **圍籬要開就兩個 env 一起開**：`NUXT_GEOFENCE_ENFORCE`（後端擋）與 `NUXT_PUBLIC_GEOFENCE_ENFORCE`（前端才會去抓 GPS）。只開後端會變成前端不送座標、後端一律擋下。
 - **QR 網址靠 `NUXT_PUBLIC_SITE_URL`**：留空時後台會拿當下 origin 組網址，前後台分域部署會編到後台網域 → 民眾掃了開錯站。分域時務必設成前台網址。舊版（純 token）QR 需**重印**才支援手機內建相機，站內掃描器則兩種都能掃。
 - **核銷已無 QR／核銷碼／`/verify` 頁**：改成工作人員在民眾手機上按「工作人員點選核銷」→ 輸入通行碼 → 「確認核銷」，`POST /api/reward/redeem` 一次完成領取與核銷。Redemption 仍會產生 `code`（欄位 required + unique），但只作為對帳用的紀錄編號，不再給人掃。因此**庫存只會扣一次**，且不存在 `pending` 狀態的兌換紀錄。
-- **圖片上傳在 Vercel 上必失敗**：serverless 檔案系統唯讀，`admin/upload.post.ts` 寫 `public/uploads/` 會壞。線上請改用「貼圖片網址」（集章點照片與市集平面圖都有此欄位），要真的支援上傳得改接物件儲存。
+- **圖片上傳走 Vercel Blob**：`admin/upload.post.ts` 看 `BLOB_READ_WRITE_TOKEN`——有值就存到 Blob（回傳絕對網址），留空就寫本機 `public/uploads/`（回傳 `/uploads/xxx`）。**線上一定要設 token**，serverless 檔案系統唯讀，寫本機路徑會壞。本機開發不設也能上傳。「貼圖片網址」的欄位仍保留，供圖片已在別處時直接引用。
 - **市集版靠 `campaign.type` 驅動**：`/api/campaign/current` 必須回傳 `type` 與 `marketMapUrl`，前台才知道要渲染哪一種地圖。市集分頁**只有平面圖本身**（攤位標記與 `station.mapCoord` 已於 2026/08 移除），要進攤位詳情走左下角清單。DB 舊文件殘留的 `mapCoord` 欄位不影響讀取（schema 已無此欄位）。
 - **核銷碼是活動層級的 4 碼 PIN**：`campaign.staffPasscode`，後台「編輯活動」設定；留空才回頭用 env `NUXT_STAFF_PASSCODE`。`staffPasscode` 只出現在 `campaignDto`（`requireAdmin` 擋著），**絕不可加進 `/api/campaign/current`**。4 碼易被暴力嘗試，`server/utils/redeemThrottle.ts` 對同一使用者連錯 5 次鎖 5 分鐘——但那是 module 層記憶體，serverless 每個 instance 各一份，屬緩解而非完整防護。
+- **多檔活動同時 active**：前台一次只顯示一檔。預設取最新一檔，但**掃到別檔的 QR 會整個切過去**（`collect` 回傳 `campaignId` → store 用它重新 `load()`），選擇記在 `localStorage` 的 `jiuli-hai:campaign-id`，重新整理不會跳回去。集章一律記在 **QR 所屬活動**（`stamp/collect.post.ts` 用 `station.campaignId`），與前台正在看哪一檔無關——這是刻意的，改動前先想清楚。民眾目前**無法手動切回**另一檔，只能靠掃碼。
+- **後台集章點表單的欄位順序刻意對齊前台** `DetailBottomSheet.vue`（照片→名稱→副標題→類型→聯絡資訊→探索此地→私房亮點），改其中一邊時另一邊也要跟著調。欄位名稱前後台一致：`description` =「探索此地」、`specialty` =「私房亮點」。
 - **前台仍有寫死的「加蚋仔」字樣**：`StampCard.vue` 的名稱裁切與 `RewardsList.vue` 的票券文案。單一活動下沒問題，之後要做多租戶／多活動時需一併抽成活動設定。
 - **刪除有保護**：有集章紀錄的活動／集章點、已被領取的獎項一律回 409 擋下，避免留下孤兒紀錄。要停用請改用「已封存」或 `noStamp`。
 - **網域分離部署**：若之後前後台分域部署，兩個部署的 `NUXT_ADMIN_HOSTNAMES` 要設成一致值（都含 admin 網域），因為判斷依據是請求的 Host header，跟哪個實體部署接到請求無關。
 
 ## 8. 環境變數（`.env`，範本見 `.env.example`）
 
-`NUXT_MONGODB_URI`、`NUXT_SESSION_SECRET`、`NUXT_PUBLIC_SITE_URL`（QR 掃碼網址的站台位址，留空＝取後台當下 origin）、`NUXT_STAFF_PASSCODE`（**預設**核銷通行碼，活動沒設 4 碼 PIN 時才用）、`NUXT_ADMIN_PASSCODE`（後台通行碼）、`NUXT_ADMIN_HOSTNAMES`（後台網域白名單，逗號分隔；留空＝不啟用網域分離檢查，本機預設）、`NUXT_GEOFENCE_ENFORCE`（本機建議 `false`）、`NUXT_GEOFENCE_RADIUS_M`、`NUXT_PUBLIC_GEOFENCE_ENFORCE`（前端用，需與後端同值）、`NUXT_PUBLIC_GOOGLE_MAPS_API_KEY`。
+`NUXT_MONGODB_URI`、`NUXT_SESSION_SECRET`、`NUXT_PUBLIC_SITE_URL`（QR 掃碼網址的站台位址，留空＝取後台當下 origin）、`BLOB_READ_WRITE_TOKEN`（Vercel Blob 圖片上傳，**無 `NUXT_` 前綴**；留空＝寫本機 `public/uploads/`）、`NUXT_STAFF_PASSCODE`（**預設**核銷通行碼，活動沒設 4 碼 PIN 時才用）、`NUXT_ADMIN_PASSCODE`（後台通行碼）、`NUXT_ADMIN_HOSTNAMES`（後台網域白名單，逗號分隔；留空＝不啟用網域分離檢查，本機預設）、`NUXT_GEOFENCE_ENFORCE`（本機建議 `false`）、`NUXT_GEOFENCE_RADIUS_M`、`NUXT_PUBLIC_GEOFENCE_ENFORCE`（前端用，需與後端同值）、`NUXT_PUBLIC_GOOGLE_MAPS_API_KEY`。
 
 ## 9. 部署（Vercel）
 

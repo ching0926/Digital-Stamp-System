@@ -4,13 +4,21 @@ import { RewardModel } from '../../models/Reward'
 import { StampRecordModel } from '../../models/StampRecord'
 import { RedemptionModel } from '../../models/Redemption'
 
-// GET /api/campaign/current
-// 回傳目前進行中的活動 + 集章點 + 獎項 +（若已登入）該使用者的集章/兌換狀態。
+// GET /api/campaign/current?campaignId=<選填>
+// 回傳指定（或最新一檔）進行中的活動 + 集章點 + 獎項 +（若已登入）該使用者的集章/兌換狀態。
+// 帶 campaignId 是為了「兩檔活動同時進行時，掃了哪一檔的 QR 就切到哪一檔」。
 // 注意：qrSecret 等敏感欄位不外流。
 export default defineEventHandler(async (event) => {
   await useMongoose()
 
-  const campaign = await CampaignModel.findOne({ status: 'active' }).sort({ createdAt: -1 })
+  const { campaignId } = getQuery(event)
+  // 指定的活動要仍在進行中才給；查無或已結束就退回最新一檔，
+  // 免得前台記著一檔早就結束的活動，整個載不出來
+  const requested = campaignId
+    ? await CampaignModel.findOne({ _id: String(campaignId), status: 'active' }).catch(() => null)
+    : null
+  const campaign =
+    requested ?? (await CampaignModel.findOne({ status: 'active' }).sort({ createdAt: -1 }))
   if (!campaign) {
     throw createError({ statusCode: 404, message: '目前沒有進行中的活動' })
   }

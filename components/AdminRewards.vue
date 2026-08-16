@@ -129,25 +129,25 @@ const stampableCount = computed(() => admin.stations.filter((s) => !s.noStamp).l
           </div>
           <div class="min-w-0">
             <h4 class="font-black text-gray-800 text-sm line-clamp-1">{{ reward.title }}</h4>
-            <p class="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{{ reward.rewardName }}</p>
+            <p class="text-xs text-gray-500 line-clamp-1 mt-0.5">{{ reward.rewardName }}</p>
           </div>
         </div>
 
         <div class="flex flex-wrap gap-1.5">
-          <span class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold">
+          <span class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold">
             集滿 {{ reward.requirementCount }} 章
           </span>
-          <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-[11px] font-bold">
+          <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold">
             {{ reward.stock < 0 ? '不限量' : `庫存 ${reward.stock}` }}
           </span>
-          <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-[11px] font-bold">
+          <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold">
             每人 {{ reward.perUserLimit }} 次
           </span>
         </div>
 
         <p
           v-if="stampableCount > 0 && reward.requirementCount > stampableCount"
-          class="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-2 py-1.5"
+          class="text-xs text-amber-600 bg-amber-50 rounded-lg px-2 py-1.5"
         >
           門檻高於可集章點位數（{{ stampableCount }}），民眾無法達成。
         </p>
@@ -203,7 +203,7 @@ const stampableCount = computed(() => admin.stations.filter((s) => !s.noStamp).l
               v-for="opt in ICONS"
               :key="opt.value"
               type="button"
-              class="flex flex-col items-center gap-1.5 py-3 rounded-xl border text-[11px] font-bold transition-colors"
+              class="flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-bold transition-colors"
               :class="
                 form.iconType === opt.value
                   ? 'bg-emerald-50 border-emerald-300 text-emerald-700'

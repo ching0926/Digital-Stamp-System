@@ -120,7 +120,7 @@ watch(
 
             <div
               v-if="!loc.noStamp"
-              class="mt-1 px-2 py-0.5 rounded-[12px] text-[9px] font-bold tracking-tight shadow-[0_2px_8px_rgba(0,0,0,0.08)] border whitespace-nowrap"
+              class="mt-1 px-2 py-0.5 rounded-[12px] text-3xs font-bold tracking-tight shadow-[0_2px_8px_rgba(0,0,0,0.08)] border whitespace-nowrap"
               :class="campaign.isCollected(loc.id)
                 ? 'bg-orange-50 border-orange-200 text-[#FF8C00]'
                 : 'bg-blue-50 border-blue-200 text-blue-500'"
@@ -130,7 +130,7 @@ watch(
 
             <div
               v-if="selectedStationId === loc.id"
-              class="mt-1 whitespace-nowrap bg-gray-900/90 text-white text-[10px] px-2 py-1 rounded-[12px] pointer-events-none"
+              class="mt-1 whitespace-nowrap bg-gray-900/90 text-white text-2xs px-2 py-1 rounded-[12px] pointer-events-none"
             >
               {{ loc.name }}
             </div>

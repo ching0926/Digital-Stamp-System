@@ -22,7 +22,7 @@ const steps = computed(() => [
     <div class="bg-white p-5 rounded-[24px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
       <div class="flex justify-between items-start">
         <div>
-          <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">集章進度</span>
+          <span class="text-2xs text-gray-400 font-bold uppercase tracking-wider">集章進度</span>
           <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight mt-1">
             {{ percentage }}% <span class="text-sm font-bold text-gray-500">已完成</span>
           </h2>
@@ -37,7 +37,7 @@ const steps = computed(() => [
         <div class="h-full bg-gradient-to-r from-[#FF8C00] to-[#FFA333] transition-all duration-700 ease-out" :style="{ width: `${percentage}%` }" />
       </div>
 
-      <p class="text-[11px] text-gray-500 mt-3 leading-relaxed">
+      <p class="text-xs text-gray-500 mt-3 leading-relaxed">
         <span v-if="campaign.collectedCount === 0"> 精彩的旅程要開始囉！一起出發收集今天的快樂吧 ✨</span>
         <span v-else-if="isAllCompleted"> 恭喜🎉 已完成全部 {{ campaign.totalCount }} 個點位收集，快去「獎項兌換」領獎！✨</span>
         <span v-else> 衝啊！你已經成功收集了 {{ campaign.collectedCount }} 點！繼續前進，再一下下就集滿囉 🚀</span>
@@ -48,7 +48,7 @@ const steps = computed(() => [
     <div class="space-y-4">
       <div class="flex justify-between items-center px-1">
         <h3 class="text-sm font-bold text-gray-800">電子集章卡</h3>
-        <span class="text-[10px] font-bold text-[#FF8C00] bg-orange-50 px-2 py-0.5 rounded-[8px]">點擊卡片看地圖</span>
+        <span class="text-2xs font-bold text-[#FF8C00] bg-orange-50 px-2 py-0.5 rounded-[8px]">點擊卡片看地圖</span>
       </div>
 
       <div class="grid grid-cols-3 gap-3">
@@ -61,7 +61,7 @@ const steps = computed(() => [
             : 'bg-gray-50/50 border-gray-100'"
           @click="emit('selectAndNavigate', loc)"
         >
-          <span class="text-[9px] font-extrabold" :class="campaign.isCollected(loc.id) ? 'text-[#FF8C00]' : 'text-gray-400'">
+          <span class="text-3xs font-extrabold" :class="campaign.isCollected(loc.id) ? 'text-[#FF8C00]' : 'text-gray-400'">
             0{{ index + 1 }}
           </span>
           <div
@@ -74,7 +74,7 @@ const steps = computed(() => [
             <MapPin v-else class="w-5 h-5 fill-current" />
           </div>
           <span
-            class="text-[10px] font-extrabold tracking-tight truncate w-full"
+            class="text-2xs font-extrabold tracking-tight truncate w-full"
             :class="campaign.isCollected(loc.id) ? 'text-gray-900' : 'text-gray-400'"
           >
             {{ loc.name.replace('加蚋仔', '') }}
@@ -90,8 +90,8 @@ const steps = computed(() => [
           <Sparkles class="w-4 h-4 text-[#FF8C00]" />
         </div>
         <div>
-          <h3 class="font-extrabold text-[12px] text-gray-800 tracking-tight">如何搜集印章？</h3>
-          <p class="text-[9px] text-gray-400 font-medium">簡單三步驟，輕鬆解鎖好禮</p>
+          <h3 class="font-extrabold text-xs text-gray-800 tracking-tight">如何搜集印章？</h3>
+          <p class="text-3xs text-gray-400 font-medium">簡單三步驟，輕鬆解鎖好禮</p>
         </div>
       </div>
 
@@ -102,8 +102,8 @@ const steps = computed(() => [
             <span class="text-xs font-black text-[#FF8C00]">{{ step.n }}</span>
           </div>
           <div class="bg-white p-3 rounded-[16px] border border-gray-100/80 flex-1">
-            <p class="text-[11px] font-bold text-gray-800">{{ step.title }}</p>
-            <p class="text-[10px] text-gray-500 mt-1 leading-normal">{{ step.desc }}</p>
+            <p class="text-xs font-bold text-gray-800">{{ step.title }}</p>
+            <p class="text-2xs text-gray-500 mt-1 leading-normal">{{ step.desc }}</p>
           </div>
         </div>
       </div>

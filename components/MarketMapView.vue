@@ -103,18 +103,18 @@ function onImgLoad(e: Event) {
       >
         <img
           :src="campaign.marketMapUrl"
-          alt="市集平面圖"
+          alt="活動地圖"
           class="block w-full h-full object-contain pointer-events-none"
           draggable="false"
           @load="onImgLoad"
         >
       </div>
 
-      <!-- 尚未設定平面圖：仍保留掃碼與清單，民眾照樣能集章 -->
+      <!-- 尚未設定活動地圖：仍保留掃碼與清單，民眾照樣能集章 -->
       <div v-else class="flex flex-col items-center justify-center gap-2 text-center px-8">
         <ImageIcon class="w-10 h-10 text-gray-300" />
-        <p class="text-sm font-bold text-gray-500">市集平面圖尚未上傳</p>
-        <p class="text-xs text-gray-400 leading-relaxed">請於後台「市集平面圖」設定，仍可使用右下角掃碼與左下角攤位清單。</p>
+        <p class="text-sm font-bold text-gray-500">活動地圖尚未上傳</p>
+        <p class="text-xs text-gray-400 leading-relaxed">請於後台「活動地圖」設定，仍可使用右下角掃碼與左下角攤位清單。</p>
       </div>
     </div>
 
