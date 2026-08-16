@@ -34,14 +34,17 @@ npm run typecheck   # 型別檢查（提交前必跑）
 npm run seed        # 匯入加蚋仔種子資料（首次或資料被清時執行）
 npm run reset       # 清空所有集章/兌換紀錄與匿名帳號、還原獎項庫存（活動設定不動）
 npm run qrsheet     # 產生 qr-test-sheet.html；本機測掃碼就開這張表在螢幕上用手機掃
-npx vercel --prod --yes   # 部署到 production（需先 vercel login）
+npm run tunnel      # 開 cloudflared HTTPS 通道（手機測本機未部署版本用，見測試慣例）
+npx vercel --prod --yes --scope jolihi   # 部署到 production（需先 vercel login）
 ```
 
 **測試慣例**
 - dev server 綁 `localhost`（IPv6），curl/測試一律用 `http://localhost:3000`，**不要用 `127.0.0.1`**（連不上）。
-- typecheck 會掃到 `prototype/`（舊 React 原型）產生大量錯誤 → 用 `grep -v "^prototype/"` 過濾，只看自身程式。
+- typecheck 輸出是乾淨的（`nuxt.config` 的 `ignore` 已排除 `prototype/`、`myenv/`），有錯就是自身程式的錯。
 - 無自動化測試框架；以 `npm run typecheck` + `npm run build` + 手動走流程作為驗收。
-- **相機掃碼只在 HTTPS 或 localhost 可用**，手機測試請直接連 Vercel 網址，區網 http 開不了相機。
+- **相機掃碼只在 HTTPS 或 localhost 可用**；且 iPhone Safari 的 HTTPS-Only 會把區網 `http://<電腦IP>:3000` 升級成 https 而失敗，**連「開網址集章」都走不通**，區網那條路等於沒有。測正式站就直接連 Vercel 網址。
+- **手機測本機未部署的版本**：`npm run dev:host` +（另開一個終端機）`npm run tunnel`，拿到 `https://xxx.trycloudflare.com`，**用那個網址開 `/admin`** 產 QR，手機掃了才會連回本機——後台是拿當下 origin 組掃碼網址，用 `localhost` 開會編出手機打不到的網址。`nuxt.config` 已把 `.trycloudflare.com` 加進 `vite.server.allowedHosts`。首次要先裝：`winget install --id Cloudflare.cloudflared -e`（裝完開新終端機才吃得到 PATH）。通道網址每次重啟都會變（QR 要重產），且是公開的，測完務必關掉。
+- `npm run tunnel` 要搭 `npm run dev:host` 而非 `npm run dev`：後者只綁 `::1`，cloudflared 連 `localhost:3000` 解析到 IPv4 會 502。
 - **模擬多個使用者**：一般視窗與無痕視窗各是一個匿名身分，用來驗證「不同人各自能領、同一人不能重複領」。
 - `npm run dev` 與 `npm run build` **不能同時跑**（Nuxt 會擋 lock），build 前要先停掉 dev server。
 
@@ -139,7 +142,7 @@ Tenant → Campaign → Station／Reward；User；StampRecord（`(userId,station
 - **環境變數數字型**：純數字 env（如 `NUXT_GEOFENCE_RADIUS_M`）會被 Nuxt(destr) 解析成 **number**；要當字串用時務必 `String(x)`（曾因對 number 呼叫 `.trim()` 造成 500）。
 - **快取髒掉**：改依賴或大改後若 dev 出現 `#app-manifest` 之類 pre-transform error、前端載不出來，清 `.nuxt` 與 `node_modules/.vite` 再重啟。本專案已關 `experimental.appManifest`。
 - **QR token**：格式 `v1.<stationId>.<hmac>`，`hmac = HMAC-SHA256(station.qrSecret, stationId)`，穩定可印製。**QR 圖裡編的是網址 `<siteUrl>/?s=<token>`**（手機內建相機才有東西可開），伺服器驗的仍是 token 本身；`utils/qrToken.ts` 的 `extractQrToken` 負責把網址還原成 token，也相容 2026/08 前印製的純 token QR。
-- **手機測試一律連 Vercel 網址**：相機需 HTTPS，`npm run dev:host` 的區網 `http://<電腦IP>:3000` 開不了相機。本機要驗掃碼就 `npm run qrsheet` 把 QR 表開在電腦螢幕，用手機連正式站掃。
+- **手機測試一定要 HTTPS**：相機需 HTTPS，而且 iPhone Safari 的 HTTPS-Only 連純粹「開一個區網 http 網址」都會擋，所以 `http://<電腦IP>:3000` 這條路整條不能用。測正式站連 Vercel 網址；測本機未部署的版本走 `npm run tunnel`（cloudflared HTTPS 通道，見第 3 節測試慣例）。
 - **前台已無點擊集章的測試面板**（掃描頁只剩真實相機解碼）。`/api/dev/tokens` 端點仍在但已無人呼叫，正式站本來就回 404。
 - **圍籬要開就兩個 env 一起開**：`NUXT_GEOFENCE_ENFORCE`（後端擋）與 `NUXT_PUBLIC_GEOFENCE_ENFORCE`（前端才會去抓 GPS）。只開後端會變成前端不送座標、後端一律擋下。
 - **QR 網址靠 `NUXT_PUBLIC_SITE_URL`**：留空時後台會拿當下 origin 組網址，前後台分域部署會編到後台網域 → 民眾掃了開錯站。分域時務必設成前台網址。舊版（純 token）QR 需**重印**才支援手機內建相機，站內掃描器則兩種都能掃。
@@ -158,7 +161,8 @@ Tenant → Campaign → Station／Reward；User；StampRecord（`(userId,station
 ## 9. 部署（Vercel）
 
 - 專案已連結 Vercel `jolihi/jiuli-hai-stamp`，正式網址 <https://jiuli-hai-stamp.vercel.app>（`.vercel/project.json` 為連結設定，不進版控）。
-- 部署：`npx vercel --prod --yes`。**上面那組 env 要在 Vercel 後台各設一份**（本機 `.env` 不會被帶上去），改完 env 要重新部署才生效。
+- 部署：`npx vercel --prod --yes --scope jolihi`。**`--scope jolihi` 不能省**——專案在 jolihi team 底下，CLI 預設 scope 會落在個人帳號，省略會回 `Not authorized`（但 `vercel whoami`、`project ls` 照樣正常，容易誤判成沒登入）。**上面那組 env 要在 Vercel 後台各設一份**（本機 `.env` 不會被帶上去），改完 env 要重新部署才生效。
+- 部署是**直接上傳工作區檔案**，跟 git 有沒有 commit 無關；`.gitignore` 內的東西（含 `.env`）不會被上傳。
 - Vercel production 的通行碼與 session secret **與本機 `.env` 不同**（線上用另一組），不要互相覆蓋。
 - MongoDB Atlas 網路白名單需含 `0.0.0.0/0`，因為 Vercel serverless 出口 IP 不固定。
 - `NUXT_PUBLIC_GOOGLE_MAPS_API_KEY` 會出現在前端原始碼，**務必在 Google Cloud Console 設 HTTP referrer 限制**到正式網域，否則會被盜用計費。
