@@ -34,6 +34,7 @@ export interface Redemption {
 }
 
 export type CampaignType = 'district' | 'market'
+export type CampaignStatus = 'draft' | 'active' | 'ended'
 
 interface CampaignPayload {
   campaign: {
@@ -42,6 +43,7 @@ interface CampaignPayload {
     description: string
     type: CampaignType
     marketMapUrl: string
+    status: CampaignStatus
   }
   stations: Station[]
   rewards: Reward[]
@@ -77,6 +79,7 @@ export const useCampaignStore = defineStore('campaign', {
     campaignId: '' as string,
     title: '' as string,
     campaignType: 'district' as CampaignType,
+    campaignStatus: 'active' as CampaignStatus,
     marketMapUrl: '' as string,
     stations: [] as Station[],
     rewards: [] as Reward[],
@@ -89,6 +92,8 @@ export const useCampaignStore = defineStore('campaign', {
   getters: {
     // 市集用自繪平面圖，商圈用 Google 地圖
     isMarket: (state) => state.campaignType === 'market',
+    // 非進行中 = 由入口連結預覽草稿／已結束的活動，此時集章會被後端擋下
+    isPreview: (state) => state.campaignStatus !== 'active',
     // 前台用語：與 stores/admin.ts 的同名 getter 一致
     unitLabel: (state) => (state.campaignType === 'market' ? '攤位' : '景點'),
     stampableStations: (state) => state.stations.filter((s) => !s.noStamp),
@@ -109,19 +114,24 @@ export const useCampaignStore = defineStore('campaign', {
       state.redemptions.find((r) => r.rewardId === rewardId) ?? null,
   },
   actions: {
-    // campaignId 留空 = 沿用上次看的那一檔（沒有就由後端給最新一檔）
-    async load(campaignId?: string) {
+    // campaignId 留空 = 沿用上次看的那一檔（沒有就由後端給最新一檔）。
+    // preview = 網址明確帶了 `?c=`，允許載入草稿／已結束的活動來預覽
+    async load(campaignId?: string, opts?: { preview?: boolean }) {
       this.loading = true
       try {
         const target = campaignId || readStoredCampaignId()
         const data = await $fetch<CampaignPayload>('/api/campaign/current', {
-          query: target ? { campaignId: target } : undefined,
+          query: target
+            ? { campaignId: target, ...(opts?.preview ? { preview: '1' } : {}) }
+            : undefined,
         })
-        // 以回傳的為準：指定的活動若已結束，後端會退回別檔
-        storeCampaignId(data.campaign.id)
         this.campaignId = data.campaign.id
         this.title = data.campaign.title
         this.campaignType = data.campaign.type ?? 'district'
+        this.campaignStatus = data.campaign.status ?? 'active'
+        // 只記進行中的活動：預覽過一次草稿就把它記起來的話，
+        // 之後每次進站都會停在那檔草稿
+        if (this.campaignStatus === 'active') storeCampaignId(data.campaign.id)
         this.marketMapUrl = data.campaign.marketMapUrl ?? ''
         this.stations = data.stations
         this.rewards = data.rewards

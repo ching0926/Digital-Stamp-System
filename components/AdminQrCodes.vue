@@ -27,6 +27,7 @@ const entryUrl = computed(() =>
   import.meta.client && admin.activeCampaignId ? `${siteBase()}/?c=${admin.activeCampaignId}` : '',
 )
 const entryQr = ref('')
+const entryStatus = computed(() => admin.activeCampaign?.status ?? 'draft')
 
 async function renderEntryQr() {
   entryQr.value = entryUrl.value
@@ -124,9 +125,27 @@ function doToggle() {
         <h3 class="text-sm font-black text-gray-800 flex items-center gap-1.5">
           <LinkIcon class="w-4 h-4 text-emerald-600" />
           活動入口
+          <span
+            class="px-2 py-0.5 rounded-full text-3xs font-bold"
+            :class="
+              entryStatus === 'active'
+                ? 'bg-emerald-50 text-emerald-700'
+                : entryStatus === 'draft'
+                  ? 'bg-amber-50 text-amber-700'
+                  : 'bg-gray-100 text-gray-500'
+            "
+          >
+            {{ entryStatus === 'active' ? '進行中' : entryStatus === 'draft' ? '草稿' : '已結束' }}
+          </span>
         </h3>
         <p class="text-xs text-gray-400 leading-relaxed">
           分享這個連結或 QR，對方開啟後會直接進入「{{ admin.activeCampaign?.title }}」的前台，不受目前預設活動影響。
+        </p>
+        <p
+          v-if="entryStatus !== 'active'"
+          class="text-2xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed"
+        >
+          此活動{{ entryStatus === 'draft' ? '尚未啟用' : '已結束' }}，連結可以開啟預覽，但民眾此時無法集章。正式對外分享前，請先把活動狀態改成「進行中」。
         </p>
         <p class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 break-all select-all">
           {{ entryUrl }}

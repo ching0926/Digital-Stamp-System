@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Award, Map as MapIcon, Gift, CheckCircle, Info, XCircle, X } from 'lucide-vue-next'
+import { Award, Map as MapIcon, Gift, CheckCircle, Info, XCircle, X, AlertTriangle } from 'lucide-vue-next'
 import type { Station } from '~/stores/campaign'
 
 const user = useUserStore()
@@ -87,10 +87,12 @@ async function collectFromUrl() {
 onMounted(async () => {
   try {
     await ensureAuth()
-    // `/?c=<campaignId>` 是後台產的活動入口連結；沒帶就沿用上次看的那一檔
+    // `/?c=<campaignId>` 是後台產的活動入口連結；沒帶就沿用上次看的那一檔。
+    // 入口連結一律用 preview 載入，草稿才預覽得到、已結束的舊連結也才會
+    // 顯示「已結束」而不是默默換成另一檔活動
     const entryCampaignId = String(route.query.c ?? '')
     const hasScanToken = Boolean(route.query.s)
-    await campaign.load(entryCampaignId || undefined)
+    await campaign.load(entryCampaignId || undefined, { preview: Boolean(entryCampaignId) })
     await collectFromUrl()
     // collectFromUrl 只在有 ?s= 時才清網址，單獨用入口連結進來的要自己清
     if (entryCampaignId && !hasScanToken) await router.replace({ query: {} })
@@ -122,8 +124,19 @@ onBeforeUnmount(() => clearTimeout(bannerTimer))
 
     <!-- 主畫面 -->
     <template v-else>
-      <!-- 進度浮卡（地圖分頁）-->
-      <div v-if="activeTab === 'map'" ref="progressCardEl" class="absolute top-4 left-4 right-4 z-20 mx-auto max-w-2xl bg-white/95 backdrop-blur-md p-4 rounded-[24px] shadow-sm border border-black/5 flex flex-col gap-2">
+      <!-- 非進行中的活動（由入口連結預覽草稿／已結束）。貼頂常駐，
+           z-30 壓過進度浮卡(z-20)但讓詳情抽屜(z-40+)蓋得住 -->
+      <div
+        v-if="campaign.isPreview"
+        class="absolute top-0 inset-x-0 z-30 px-4 py-2 flex items-center justify-center gap-2 text-white text-2xs font-bold"
+        :class="campaign.campaignStatus === 'ended' ? 'bg-gray-600' : 'bg-amber-500'"
+      >
+        <AlertTriangle class="w-3.5 h-3.5 shrink-0" />
+        <span>{{ campaign.campaignStatus === 'ended' ? '這個活動已經結束' : '預覽中・活動尚未開始，此時無法集章' }}</span>
+      </div>
+
+      <!-- 進度浮卡（地圖分頁）。預覽橫幅在時往下讓位 -->
+      <div v-if="activeTab === 'map'" ref="progressCardEl" class="absolute left-4 right-4 z-20 mx-auto max-w-2xl bg-white/95 backdrop-blur-md p-4 rounded-[24px] shadow-sm border border-black/5 flex flex-col gap-2" :class="campaign.isPreview ? 'top-12' : 'top-4'">
         <div class="flex justify-between items-end">
           <span class="text-xs font-bold text-gray-800">{{ campaign.title || '集章冒險' }}進度</span>
           <span class="text-xs font-bold text-[#FF8C00]">{{ campaign.collectedCount }}/{{ campaign.totalCount }} 已收集</span>
@@ -137,8 +150,11 @@ onBeforeUnmount(() => clearTimeout(bannerTimer))
       <Transition enter-active-class="transition duration-300" enter-from-class="opacity-0 -translate-y-4" leave-active-class="transition duration-200" leave-to-class="opacity-0 -translate-y-4">
         <div
           v-if="scanBanner && activeTab === 'card'"
-          class="absolute top-4 left-4 right-4 z-40 mx-auto max-w-2xl flex items-center gap-3 p-4 rounded-[24px] shadow-lg text-white"
-          :class="scanBanner.tone === 'success' ? 'bg-[#10B981]' : scanBanner.tone === 'info' ? 'bg-[#FF8C00]' : 'bg-red-500'"
+          class="absolute left-4 right-4 z-40 mx-auto max-w-2xl flex items-center gap-3 p-4 rounded-[24px] shadow-lg text-white"
+          :class="[
+            scanBanner.tone === 'success' ? 'bg-[#10B981]' : scanBanner.tone === 'info' ? 'bg-[#FF8C00]' : 'bg-red-500',
+            campaign.isPreview ? 'top-12' : 'top-4',
+          ]"
         >
           <component
             :is="scanBanner.tone === 'success' ? CheckCircle : scanBanner.tone === 'info' ? Info : XCircle"
