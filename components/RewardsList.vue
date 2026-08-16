@@ -200,7 +200,7 @@ function closeTicket() {
                 maxlength="4"
                 autocomplete="one-time-code"
                 placeholder="4 碼核銷碼"
-                class="w-full mt-3 px-4 py-2.5 rounded-[16px] bg-white border border-amber-200 text-base tracking-[0.4em] text-center focus:outline-none focus:border-amber-400"
+                class="w-full mt-3 px-4 py-2.5 rounded-[16px] bg-white border border-amber-200 text-xs font-extrabold tracking-[0.4em] text-center focus:outline-none focus:border-amber-400"
                 @keyup.enter="doRedeem"
               >
               <p v-if="redeemError" class="text-2xs text-red-500 font-bold text-center mt-2">{{ redeemError }}</p>
