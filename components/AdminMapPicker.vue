@@ -73,7 +73,7 @@ const display = computed(() => ({
 <template>
   <!-- z-[60]：要蓋過 AdminModal(z-50) 的編輯表單，但別擋到 toast(z-[70]) -->
   <div class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-6">
-    <div class="bg-white w-full sm:max-w-6xl rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col h-[94dvh] sm:h-[90dvh]">
+    <div class="bg-white w-full sm:max-w-4xl rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col h-[94dvh] sm:h-[90dvh]">
       <div class="flex items-start justify-between gap-4 p-5 border-b border-gray-100 shrink-0">
         <div>
           <h3 class="text-base font-black text-gray-800">設定座標</h3>
@@ -121,14 +121,14 @@ const display = computed(() => ({
 
         <!-- 方式二：點地圖 -->
         <ClientOnly>
-          <div v-if="!apiKey" class="flex-1 min-h-[440px] rounded-2xl border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2 text-center p-6">
+          <div v-if="!apiKey" class="h-[70vh] min-h-[460px] shrink-0 rounded-2xl border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2 text-center p-6">
             <MapPin class="w-8 h-8 text-gray-300" />
             <p class="text-xs font-bold text-gray-500">尚未設定 Google Maps API key</p>
             <p class="text-2xs text-gray-400">請在 <code class="font-mono">.env</code> 填入 NUXT_PUBLIC_GOOGLE_MAPS_API_KEY，或改用上方貼連結。</p>
           </div>
-          <!-- 地圖優先佔空間：高螢幕由 flex-1 撐大，矮螢幕保底 440px 讓內容區往下捲，
-               不要為了塞進視窗把地圖壓小 -->
-          <div v-else class="flex-1 min-h-[440px] rounded-2xl overflow-hidden border border-gray-100">
+          <!-- 固定高度（不用 flex-1 填滿），內容自然會超出可用高度，
+               留出往下滑的空間；矮螢幕仍保底 460px -->
+          <div v-else class="h-[70vh] min-h-[460px] shrink-0 rounded-2xl overflow-hidden border border-gray-100">
             <GoogleMap
               ref="mapRef"
               :api-key="apiKey"
