@@ -16,6 +16,8 @@ export function campaignDto(c: Doc) {
     type: c.type ?? 'district',
     targetStampCount: c.targetStampCount ?? 0,
     marketMapUrl: c.marketMapUrl ?? '',
+    // 僅供後台顯示；requireAdmin 擋在前面，前台的 /api/campaign/current 不會帶出這個欄位
+    staffPasscode: c.staffPasscode ?? '',
     status: c.status,
   }
 }
@@ -29,7 +31,6 @@ export function stationDto(s: Doc) {
     description: s.description ?? '',
     address: s.address ?? '',
     geo: { lat: s.geo?.lat ?? 0, lng: s.geo?.lng ?? 0 },
-    mapCoord: { x: s.mapCoord?.x ?? 50, y: s.mapCoord?.y ?? 50 },
     imgUrl: s.imgUrl ?? '',
     type: s.type ?? '',
     specialty: s.specialty ?? '',

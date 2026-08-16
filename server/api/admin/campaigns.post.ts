@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
     type: body.type === 'market' ? 'market' : 'district',
     targetStampCount: Number(body.targetStampCount ?? 0),
     marketMapUrl: String(body.marketMapUrl ?? ''),
+    staffPasscode: normalizeStaffPasscode(body.staffPasscode),
     status: ['active', 'draft', 'ended'].includes(String(body.status)) ? body.status : 'draft',
   })
 

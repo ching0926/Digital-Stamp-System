@@ -28,7 +28,6 @@ export default defineEventHandler(async (event) => {
     description: String(body.description ?? ''),
     address: String(body.address ?? ''),
     geo: { lat: Number(body.geo?.lat ?? 0), lng: Number(body.geo?.lng ?? 0) },
-    mapCoord: { x: Number(body.mapCoord?.x ?? 50), y: Number(body.mapCoord?.y ?? 50) },
     imgUrl: String(body.imgUrl ?? ''),
     type: String(body.type ?? ''),
     specialty: String(body.specialty ?? ''),

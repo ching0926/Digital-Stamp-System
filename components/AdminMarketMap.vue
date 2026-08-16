@@ -70,7 +70,7 @@ async function clearMap() {
           市集平面圖
         </h2>
         <p class="text-xs text-gray-400 mt-1">
-          設定市集攤位配置圖。攤位在圖上的位置由各攤位的「地圖 X／Y」百分比決定。
+          設定市集攤位配置圖。前台市集分頁只顯示這張圖（可平移縮放），攤位改由清單進入。
           <span class="text-amber-600 font-semibold">線上版請用「貼圖片網址」</span>——雲端主機無法存檔，上傳只在本機開發可用。
         </p>
       </div>

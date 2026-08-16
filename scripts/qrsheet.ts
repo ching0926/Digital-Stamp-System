@@ -31,10 +31,13 @@ async function main() {
     order: 1,
   })
 
+  // QR 編的是掃碼網址（與後台一致），手機內建相機掃到就能開站集章
+  const base = (process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
+
   const cards: string[] = []
   for (const s of stations) {
     const token = makeQrToken(s._id.toString(), s.qrSecret)
-    const dataUrl = await QRCode.toDataURL(token, { margin: 1, width: 260 })
+    const dataUrl = await QRCode.toDataURL(`${base}/?s=${token}`, { margin: 1, width: 260 })
     cards.push(
       `<div class="card"><img src="${dataUrl}" alt="${s.name}"><div class="name">${s.name}</div></div>`,
     )
@@ -53,7 +56,7 @@ async function main() {
   .name{font-weight:800;margin-top:10px;font-size:14px}
 </style></head><body>
 <h1>加蚋仔集章 — QR 測試表</h1>
-<p class="note">上機測試用：在電腦螢幕開啟本頁，用手機 LINE 內的集章 App 掃描下方任一 QR 即可完成該點集章。（測試期地理圍籬已關閉；正式上線前請改回開啟並校正座標。）</p>
+<p class="note">上機測試用：在電腦螢幕開啟本頁，用手機內建相機或站內掃描器掃描下方任一 QR 即可完成該點集章。（QR 指向 ${base}；測試期地理圍籬已關閉，正式上線前請改回開啟並校正座標。）</p>
 <div class="grid">${cards.join('\n')}</div>
 </body></html>`
 

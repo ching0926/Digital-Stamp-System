@@ -33,6 +33,7 @@ const form = reactive({
   endAt: '',
   type: 'district' as 'district' | 'market',
   targetStampCount: 6,
+  staffPasscode: '',
   status: 'draft' as AdminCampaign['status'],
 })
 
@@ -50,6 +51,7 @@ function openCreate() {
     endAt: later.toISOString().slice(0, 10),
     type: 'district',
     targetStampCount: 6,
+    staffPasscode: '',
     status: 'draft',
   })
   formOpen.value = true
@@ -64,6 +66,7 @@ function openEdit(c: AdminCampaign) {
     endAt: toDateInput(c.endAt),
     type: c.type,
     targetStampCount: c.targetStampCount,
+    staffPasscode: c.staffPasscode ?? '',
     status: c.status,
   })
   formOpen.value = true
@@ -72,6 +75,11 @@ function openEdit(c: AdminCampaign) {
 async function save() {
   if (!form.title.trim()) {
     toast('請填寫活動名稱', 'error')
+    return
+  }
+  // 留空代表沿用系統預設核銷碼，有填就一定要是 4 碼數字（後端也會再擋一次）
+  if (form.staffPasscode.trim() && !/^\d{4}$/.test(form.staffPasscode.trim())) {
+    toast('核銷碼請設定 4 位數字', 'error')
     return
   }
   saving.value = true
@@ -323,6 +331,20 @@ async function doDelete() {
             />
           </label>
         </div>
+
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold text-gray-600">現場核銷碼（4 碼數字）</span>
+          <input
+            v-model="form.staffPasscode"
+            inputmode="numeric"
+            maxlength="4"
+            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono tracking-[0.3em] focus:outline-none focus:border-emerald-400 focus:bg-white"
+            placeholder="例：1234"
+          />
+          <span class="text-[11px] text-gray-400">
+            民眾兌換獎項時，由現場工作人員在民眾手機上輸入這組碼完成核銷。留空則沿用系統預設核銷碼。
+          </span>
+        </label>
 
         <label class="flex flex-col gap-1.5">
           <span class="text-xs font-bold text-gray-600">活動狀態</span>

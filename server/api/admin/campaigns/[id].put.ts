@@ -24,6 +24,9 @@ export default defineEventHandler(async (event) => {
   if (body.type !== undefined) campaign.type = body.type === 'market' ? 'market' : 'district'
   if (body.targetStampCount !== undefined) campaign.targetStampCount = Number(body.targetStampCount)
   if (body.marketMapUrl !== undefined) campaign.marketMapUrl = String(body.marketMapUrl)
+  if (body.staffPasscode !== undefined) {
+    campaign.staffPasscode = normalizeStaffPasscode(body.staffPasscode)
+  }
   if (body.status !== undefined) {
     if (!['active', 'draft', 'ended'].includes(String(body.status))) {
       throw createError({ statusCode: 400, message: '活動狀態不正確' })

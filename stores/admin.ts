@@ -12,6 +12,8 @@ export interface AdminCampaign {
   type: 'district' | 'market'
   targetStampCount: number
   marketMapUrl: string
+  // 現場核銷用的 4 碼數字通行碼；空字串 = 沿用系統預設（env）
+  staffPasscode: string
   status: 'draft' | 'active' | 'ended'
   participantsCount: number
 }
@@ -24,7 +26,6 @@ export interface AdminStation {
   description: string
   address: string
   geo: { lat: number; lng: number }
-  mapCoord: { x: number; y: number }
   imgUrl: string
   type: string
   specialty: string

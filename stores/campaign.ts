@@ -7,7 +7,6 @@ export interface Station {
   description: string
   address: string
   geo: { lat: number; lng: number }
-  mapCoord: { x: number; y: number }
   imgUrl: string
   type: string
   specialty: string

@@ -13,11 +13,6 @@ const stationSchema = new Schema(
       lat: { type: Number, required: true },
       lng: { type: Number, required: true },
     },
-    // 前端自繪 SVG 地圖的相對百分比座標
-    mapCoord: {
-      x: { type: Number, required: true },
-      y: { type: Number, required: true },
-    },
     imgUrl: { type: String, default: '' },
     type: { type: String, default: '' },
     specialty: { type: String, default: '' },

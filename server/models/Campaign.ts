@@ -21,6 +21,8 @@ const campaignSchema = new Schema(
     marketMapUrl: { type: String, default: '' },
     // 前端自繪地圖用的設定（背景圖、外框等），彈性欄位
     mapConfig: { type: Schema.Types.Mixed, default: {} },
+    // 現場核銷用的 4 碼數字通行碼。留空 = 沿用 env 的 NUXT_STAFF_PASSCODE
+    staffPasscode: { type: String, default: '' },
     status: {
       type: String,
       enum: ['draft', 'active', 'ended'],

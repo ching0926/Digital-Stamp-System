@@ -10,13 +10,10 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const { rewardId, staffKey } = await readBody<{ rewardId?: string; staffKey?: string }>(event)
 
-  // 先擋身分：這顆按鈕長在民眾自己的手機上，沒有通行碼就等於人人可自助核銷
-  const { staffPasscode } = useRuntimeConfig()
-  if (!staffPasscode || staffKey !== String(staffPasscode)) {
-    throw createError({ statusCode: 401, message: '工作人員通行碼錯誤' })
-  }
-
   if (!rewardId) throw createError({ statusCode: 400, message: '缺少 rewardId' })
+
+  const userId = user._id.toString()
+  assertRedeemNotLocked(userId)
 
   const reward = await RewardModel.findById(rewardId).catch(() => null)
   if (!reward) throw createError({ statusCode: 404, message: '找不到此獎項' })
@@ -26,6 +23,15 @@ export default defineEventHandler(async (event) => {
   if (!campaign || campaign.status !== 'active' || now < campaign.startAt || now > campaign.endAt) {
     throw createError({ statusCode: 400, message: '活動未在進行中' })
   }
+
+  // 擋身分：這顆按鈕長在民眾自己的手機上，沒有通行碼就等於人人可自助核銷。
+  // 通行碼優先取活動自訂的 4 碼核銷碼，沒設才回頭用 env 的預設值
+  const expectedPasscode = String(campaign.staffPasscode || useRuntimeConfig().staffPasscode || '')
+  if (!expectedPasscode || String(staffKey ?? '') !== expectedPasscode) {
+    recordRedeemFailure(userId)
+    throw createError({ statusCode: 401, message: '工作人員通行碼錯誤' })
+  }
+  clearRedeemFailures(userId)
 
   // 門檻檢查
   const collectedCount = await StampRecordModel.countDocuments({

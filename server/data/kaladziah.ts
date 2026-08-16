@@ -1,5 +1,5 @@
 // 加蚋仔商圈種子資料，由前端原型 src/data.ts 遷移而來。
-// mapCoord 沿用原型的 SVG 相對座標；geo 為 GPS 地理圍籬用的「概略」座標，
+// geo 為 GPS 地理圍籬用的「概略」座標，
 // 上線前務必以實地量測校正（目前為依地址推估的近似值）。
 
 export interface SeedStation {
@@ -8,7 +8,6 @@ export interface SeedStation {
   description: string
   address: string
   geo: { lat: number; lng: number }
-  mapCoord: { x: number; y: number }
   imgUrl: string
   type: string
   specialty: string
@@ -35,7 +34,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '加蚋仔在地的核心信仰中心，主祀楊聖公（楊府爺），見證加蚋仔開拓歷史。廟宇中保存了精美的木雕、石刻與傳統磚造建築，蘊藏著百餘年來地方仕紳與居民的生活記憶。',
     address: '台北市萬華區東園街201號',
     geo: { lat: 25.0264, lng: 121.4988 },
-    mapCoord: { x: 22, y: 35 },
     imgUrl: 'https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&w=800&q=80',
     type: '古蹟廟宇',
     specialty: '每年十月楊聖公聖誕，是加蚋仔地區最盛大的無形文化慶典。',
@@ -50,7 +48,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '日治時期至光復初期，加蚋仔曾是北台灣最著名的茉莉花產地，供應香片茶葉薰香使用。此工坊由在地青年共同發起，保存老屋、展示茉莉花栽種歷史，並推廣在地文化與手作香包。',
     address: '台北市萬華區東園街28-2號',
     geo: { lat: 25.0288, lng: 121.5006 },
-    mapCoord: { x: 72, y: 20 },
     imgUrl: 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=800&q=80',
     type: '文史空間',
     specialty: '工坊提供有機茉莉花茶品茗、在地文創產品，以及茉莉花香片手作 DIY 體驗。',
@@ -65,7 +62,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '青年公園在日治時期曾是「南機場飛行場」，後改建為高爾夫球場，如今是南萬華面積最大的都會綠地。園區內的「鷺鷥湖」生態極為豐富，柳樹低垂，常有小白鷺、夜鷺在此棲息。',
     address: '台北市萬華區水源路199號',
     geo: { lat: 25.0219, lng: 121.5033 },
-    mapCoord: { x: 82, y: 68 },
     imgUrl: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80',
     type: '生態休閒',
     specialty: '漫步鷺鷥湖畔，能欣賞湖光倒影與水鳥翱翔。公園內還有全台唯一的溫室花卉區與太空城堡沙坑。',
@@ -80,7 +76,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '加蚋仔因地下水質清澈甜美，自古以來便發展出龐大的豆芽菜產業，最高峰時曾供應大台北地區近八成的需求。至今，在胡氏與翁氏家族等古法工坊中，依然能看見數十年如一日的培育與洗滌工藝。',
     address: '台北市萬華區萬大路322巷90號',
     geo: { lat: 25.0206, lng: 121.5011 },
-    mapCoord: { x: 28, y: 76 },
     imgUrl: 'https://images.unsplash.com/photo-1515023115689-589c33041d3c?auto=format&fit=crop&w=800&q=80',
     type: '傳統產業',
     specialty: '清晨的洗菜場景是加蚋仔的經典日常。這裡生長出的豆芽菜不含漂白劑，清脆甘甜。',
@@ -95,7 +90,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '廣照宮建於清咸豐年間，主祀「飛天大聖」，是加蚋仔東園街聚落的保護神。廟宇精緻的彩繪與石雕神龍活現，與楊聖公廟並列為加蚋仔地區最具歷史底蘊的兩座古老宮廟。',
     address: '台北市萬華區長泰街144號',
     geo: { lat: 25.0251, lng: 121.4997 },
-    mapCoord: { x: 48, y: 48 },
     imgUrl: 'https://images.unsplash.com/photo-1478147427282-58a87a120781?auto=format&fit=crop&w=800&q=80',
     type: '古蹟廟宇',
     specialty: '廟前牌樓是當地著名地標，常是在地長者閒話家常、囡仔下棋玩耍的溫馨社區據點。',
@@ -110,7 +104,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '東園街是加蚋仔地區最早興起的商業街，昔日繁華一時。街區保留了部分日治時期的紅磚洋樓，以及眾多傳承三代的老字號餅舖、中藥行、鐘錶店，散發著濃厚的老台北人情味。',
     address: '台北市萬華區東園街中段',
     geo: { lat: 25.0272, lng: 121.4996 },
-    mapCoord: { x: 42, y: 15 },
     imgUrl: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=800&q=80',
     type: '文史空間',
     specialty: '沿街可探訪傳承數十年的傳統糕餅舖，品嚐在地古早味肉包與傳統點心。',
@@ -125,7 +118,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '位於青年公園一隅的萬華故事館，展示了萬華區從凱達格蘭族、清代漢人開墾、日治時期、光復初期到現代的珍貴歷史照片與文物。常設展包含加蚋仔三寶（茉莉花、豆芽菜、麻竹筍）歷史。',
     address: '台北市萬華區青年路65號 (青年公園內)',
     geo: { lat: 25.0227, lng: 121.5024 },
-    mapCoord: { x: 80, y: 55 },
     imgUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80',
     type: '文化場館',
     specialty: '館內收藏了大量古老地圖，以及復刻的加蚋仔傳統農具與日治時期東園街街景模型。',
@@ -141,7 +133,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '東園市場是加蚋仔居民日常生活不可或缺的傳統公有市場。這裡匯聚了數十個經營超過半世紀的老攤位，從新鮮的在地農產品、傳統熟食，到香氣四溢的古早味油飯與米粉湯，傳遞著濃濃的在地人情味。',
     address: '台北市萬華區東園街154號',
     geo: { lat: 25.0269, lng: 121.4999 },
-    mapCoord: { x: 50, y: 25 },
     imgUrl: 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=800&q=80',
     type: '在地生活',
     specialty: '早上是熱鬧的傳統菜市場，周邊也有許多傳承兩代以上的老字號早餐與點心攤。',
@@ -157,7 +148,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '青年公園內頗具規模的植物展示溫室，全年展出各類應時花卉與觀葉植物。溫室內規劃了仙人掌區、熱帶植物區及蕨類植物區，綠意盎然，是許多市民前來散步、攝影與親近自然的秘密花園。',
     address: '台北市萬華區水源路199號 (青年公園內)',
     geo: { lat: 25.0213, lng: 121.5039 },
-    mapCoord: { x: 88, y: 72 },
     imgUrl: 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=800&q=80',
     type: '生態休閒',
     specialty: '溫室外圍常舉辦季節性花卉展覽，室內採光極佳，十分適合靜心漫步或拍下優美照片。',
@@ -173,7 +163,6 @@ export const KALADZIAH_STATIONS: SeedStation[] = [
       '這面彩繪牆由萬華在地藝術家與社區居民合力創作，將加蚋仔過去著名的「加蚋仔三寶」——茉莉花海、茂密竹林、豆芽菜培育場，以及百年的迎神慶典，以生動活潑的插畫風格繪製於社區小巷牆面。',
     address: '台北市萬華區東園街66巷口',
     geo: { lat: 25.0279, lng: 121.4991 },
-    mapCoord: { x: 60, y: 18 },
     imgUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80',
     type: '文史空間',
     specialty: '彩繪牆栩栩如生地重現了日治時期茉莉花採收的景象，是極佳的打卡與戶外文史解說點。',

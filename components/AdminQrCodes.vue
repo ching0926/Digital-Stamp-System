@@ -5,15 +5,26 @@ import type { AdminQrStation } from '~/stores/admin'
 
 const admin = useAdminStore()
 const { show: toast, showError } = useAdminToast()
+const { public: publicConfig } = useRuntimeConfig()
 
 // stationId → QR data URL。token 穩定不變，算過就快取
 const qrMap = ref<Record<string, string>>({})
+
+// QR 編的是掃碼網址，民眾用手機內建相機掃就能開站集章。
+// 前後台分域時 origin 會是後台網域，故以 NUXT_PUBLIC_SITE_URL 優先
+function scanUrl(token: string) {
+  const base = String(publicConfig.siteUrl || window.location.origin).replace(/\/$/, '')
+  return `${base}/?s=${token}`
+}
 
 async function renderAll() {
   const entries = await Promise.all(
     admin.qrStations
       .filter((s) => !s.noStamp && !qrMap.value[s.id])
-      .map(async (s) => [s.id, await QRCode.toDataURL(s.token, { margin: 1, width: 320 })] as const),
+      .map(
+        async (s) =>
+          [s.id, await QRCode.toDataURL(scanUrl(s.token), { margin: 1, width: 320 })] as const,
+      ),
   )
   for (const [id, url] of entries) qrMap.value[id] = url
 }
@@ -65,6 +76,9 @@ function doToggle() {
       </h2>
       <p class="text-xs text-gray-400 mt-1">
         下載後列印張貼於各{{ admin.unitLabel }}，供民眾掃描集章。QR 內容固定不變，可長期使用。
+        <span class="text-amber-600 font-semibold">
+          QR 現在編的是掃碼網址，民眾用手機內建相機掃即可開啟集章；2026/08 之前印製的舊 QR 需重印才支援內建相機（站內掃描器仍可掃）。
+        </span>
       </p>
     </div>
 

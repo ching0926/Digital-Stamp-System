@@ -11,3 +11,14 @@ export function requireAdmin(event: H3Event) {
     throw createError({ statusCode: 401, message: '管理員通行碼錯誤' })
   }
 }
+
+// 活動層級的現場核銷碼：限 4 碼數字，空字串代表沿用 env 的 NUXT_STAFF_PASSCODE。
+// 純數字會被 destr 解析成 number（且吃掉前導 0），故一律轉字串後再驗
+export function normalizeStaffPasscode(value: unknown): string {
+  const code = String(value ?? '').trim()
+  if (!code) return ''
+  if (!/^\d{4}$/.test(code)) {
+    throw createError({ statusCode: 400, message: '核銷碼請設定 4 位數字' })
+  }
+  return code
+}

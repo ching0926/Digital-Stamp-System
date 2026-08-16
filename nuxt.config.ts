@@ -37,6 +37,9 @@ export default defineNuxtConfig({
     geofenceEnforce: true,
     geofenceRadiusM: 300,
     public: {
+      // 站台對外網址（env: NUXT_PUBLIC_SITE_URL）。後台產 QR 時用它組掃碼網址；
+      // 留空則取後台當下的 origin——前後台分域部署時務必設定，否則會編到後台網域
+      siteUrl: '',
       // 前端 Google Maps JavaScript API key（env: NUXT_PUBLIC_GOOGLE_MAPS_API_KEY）
       googleMapsApiKey: '',
       // 前端是否需要抓 GPS 才送出集章（env: NUXT_PUBLIC_GEOFENCE_ENFORCE）

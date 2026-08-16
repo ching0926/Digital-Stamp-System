@@ -24,9 +24,6 @@ export default defineEventHandler(async (event) => {
   if (body.geo !== undefined) {
     station.geo = { lat: Number(body.geo?.lat ?? 0), lng: Number(body.geo?.lng ?? 0) }
   }
-  if (body.mapCoord !== undefined) {
-    station.mapCoord = { x: Number(body.mapCoord?.x ?? 50), y: Number(body.mapCoord?.y ?? 50) }
-  }
   if (body.imgUrl !== undefined) station.imgUrl = String(body.imgUrl)
   if (body.type !== undefined) station.type = String(body.type)
   if (body.specialty !== undefined) station.specialty = String(body.specialty)

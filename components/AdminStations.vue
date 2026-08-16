@@ -31,8 +31,6 @@ const emptyForm = () => ({
   address: '',
   lat: 25.028,
   lng: 121.5,
-  x: 50,
-  y: 50,
   imgUrl: '',
   type: '',
   specialty: '',
@@ -57,8 +55,6 @@ function openEdit(s: AdminStation) {
     address: s.address,
     lat: s.geo.lat,
     lng: s.geo.lng,
-    x: s.mapCoord.x,
-    y: s.mapCoord.y,
     imgUrl: s.imgUrl,
     type: s.type,
     specialty: s.specialty,
@@ -95,7 +91,6 @@ async function save() {
     description: form.description,
     address: form.address,
     geo: { lat: form.lat, lng: form.lng },
-    mapCoord: { x: form.x, y: form.y },
     imgUrl: form.imgUrl,
     type: form.type,
     specialty: form.specialty,
@@ -307,29 +302,6 @@ async function doDelete() {
         <p class="text-[11px] text-gray-400 -mt-2">
           可在 Google 地圖上對地點按右鍵複製座標。座標不準會導致地理圍籬誤擋。
         </p>
-
-        <div class="grid grid-cols-2 gap-3">
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">地圖 X（%）</span>
-            <input
-              v-model.number="form.x"
-              type="number"
-              min="0"
-              max="100"
-              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
-            />
-          </label>
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-gray-600">地圖 Y（%）</span>
-            <input
-              v-model.number="form.y"
-              type="number"
-              min="0"
-              max="100"
-              class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white"
-            />
-          </label>
-        </div>
 
         <div class="flex flex-col gap-1.5">
           <span class="text-xs font-bold text-gray-600">照片</span>

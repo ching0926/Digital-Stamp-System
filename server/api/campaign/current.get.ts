@@ -59,7 +59,6 @@ export default defineEventHandler(async (event) => {
       description: s.description,
       address: s.address,
       geo: s.geo,
-      mapCoord: s.mapCoord,
       imgUrl: s.imgUrl,
       type: s.type,
       specialty: s.specialty,

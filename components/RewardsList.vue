@@ -196,9 +196,11 @@ function closeTicket() {
               <input
                 v-model="staffKey"
                 type="password"
-                inputmode="text"
-                placeholder="工作人員通行碼"
-                class="w-full mt-3 px-4 py-2.5 rounded-[16px] bg-white border border-amber-200 text-sm text-center focus:outline-none focus:border-amber-400"
+                inputmode="numeric"
+                maxlength="4"
+                autocomplete="one-time-code"
+                placeholder="4 碼核銷碼"
+                class="w-full mt-3 px-4 py-2.5 rounded-[16px] bg-white border border-amber-200 text-base tracking-[0.4em] text-center focus:outline-none focus:border-amber-400"
                 @keyup.enter="doRedeem"
               >
               <p v-if="redeemError" class="text-[10px] text-red-500 font-bold text-center mt-2">{{ redeemError }}</p>

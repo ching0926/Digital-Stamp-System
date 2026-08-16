@@ -5,7 +5,6 @@ import jsQR from 'jsqr'
 const emit = defineEmits<{ close: []; goCard: [] }>()
 
 const campaign = useCampaignStore()
-const { public: publicConfig } = useRuntimeConfig()
 
 const flashlight = ref(false)
 const errorToast = ref<string | null>(null)
@@ -23,24 +22,21 @@ let ctx: CanvasRenderingContext2D | null = null
 let rafId = 0
 let lastDecodeAt = 0
 
-// 圍籬關閉時就不要跟使用者要定位權限（少一個彈窗、也省掉 timeout 等待）
-async function getGeo(): Promise<{ lat: number; lng: number } | undefined> {
-  if (!publicConfig.geofenceEnforce) return undefined
-  if (!navigator.geolocation) return undefined
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => resolve(undefined),
-      { timeout: 4000 },
-    )
-  })
-}
-
-async function submitToken(token: string) {
+async function submitToken(raw: string) {
   if (processing.value) return // 防止重複送出（同一張 QR 會連續解到多幀）
+  // QR 現在編的是網址，舊版印製的純 token 也要能掃
+  const token = extractQrToken(raw)
+  if (!token) {
+    // 鏡頭裡混到別的 QR。靠 toast 是否還在來節流，否則每一幀都會重設一次
+    if (!errorToast.value) {
+      errorToast.value = '這不是本活動的集章 QR'
+      setTimeout(() => (errorToast.value = null), 3000)
+    }
+    return
+  }
   processing.value = true
   try {
-    const geo = await getGeo()
+    const geo = await getStampGeo()
     const res = await campaign.collect(token, geo)
     result.value = { already: res.alreadyCollected, stationName: res.stationName }
     if (!res.alreadyCollected && navigator.vibrate) navigator.vibrate([100, 50, 100])
