@@ -10,49 +10,42 @@ const { public: publicConfig } = useRuntimeConfig()
 // stationId → QR data URL。token 穩定不變，算過就快取
 const qrMap = ref<Record<string, string>>({})
 
-// 前後台分域時 origin 會是後台網域，故以 NUXT_PUBLIC_SITE_URL 優先。
-// 入口連結與各點 QR 都靠它組網址，只留這一份
+// 前後台分域時 origin 會是後台網域，故以 NUXT_PUBLIC_SITE_URL 優先
 function siteBase() {
   return String(publicConfig.siteUrl || window.location.origin).replace(/\/$/, '')
 }
 
+const liffId = computed(() => String(publicConfig.liffId || ''))
+
+// 入口連結與各點 QR 都由這裡組，只留這一份。
+// 有設 LIFF ID 就編 LIFF 網址：民眾從外部瀏覽器點進來也會先過 LINE 登入，
+// 章才不會因為換了瀏覽器就記到另一個身分上。沒設則退回站台網址
+function appUrl(query: string) {
+  return liffId.value ? `https://liff.line.me/${liffId.value}?${query}` : `${siteBase()}/?${query}`
+}
+
 // QR 編的是掃碼網址，民眾用手機內建相機掃就能開站集章
 function scanUrl(token: string) {
-  return `${siteBase()}/?s=${token}`
+  return appUrl(`s=${token}`)
 }
 
-// 活動入口連結：帶 ?c= 讓前台直接載入這一檔活動，而不是預設的最新一檔。
-// siteBase() 會讀 window，SSR 階段先回空字串，hydration 後才算得出來
+// 圖文選單連結：帶 ?c= 讓前台直接載入這一檔活動，而不是預設的最新一檔。
+// 這條連結是給業主貼進 LINE 官方帳號的圖文選單按鈕用的，不是給民眾掃的
+//（民眾掃的是 LINE 後台提供的官方帳號 QR，加好友後才從圖文選單點進來）。
+// appUrl() 可能讀 window，SSR 階段先回空字串，hydration 後才算得出來
 const entryUrl = computed(() =>
-  import.meta.client && admin.activeCampaignId ? `${siteBase()}/?c=${admin.activeCampaignId}` : '',
+  import.meta.client && admin.activeCampaignId ? appUrl(`c=${admin.activeCampaignId}`) : '',
 )
-const entryQr = ref('')
 const entryStatus = computed(() => admin.activeCampaign?.status ?? 'draft')
-
-async function renderEntryQr() {
-  entryQr.value = entryUrl.value
-    ? await QRCode.toDataURL(entryUrl.value, { margin: 1, width: 320 })
-    : ''
-}
 
 async function copyEntryUrl() {
   try {
     await navigator.clipboard.writeText(entryUrl.value)
-    toast('已複製活動入口連結')
+    toast('已複製圖文選單連結')
   } catch {
     // 非 HTTPS 或瀏覽器擋下時沒有剪貼簿權限，讓使用者自己選取
     showError(null, '無法自動複製，請手動選取上方網址')
   }
-}
-
-function downloadEntryQr() {
-  if (!entryQr.value) return
-  const a = document.createElement('a')
-  a.href = entryQr.value
-  a.download = `entry-${admin.activeCampaign?.title || 'campaign'}.png`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
 }
 
 async function renderAll() {
@@ -69,8 +62,6 @@ async function renderAll() {
 
 onMounted(renderAll)
 watch(() => admin.qrStations, renderAll, { deep: true })
-// 切換活動時入口連結會變，QR 要跟著重畫
-watch(entryUrl, renderEntryQr, { immediate: true })
 
 function download(station: AdminQrStation) {
   const url = qrMap.value[station.id]
@@ -119,12 +110,12 @@ function doToggle() {
       </p>
     </div>
 
-    <!-- 活動入口：給別人連結或掃碼直接進到「這一檔」活動的前台 -->
-    <div v-if="entryUrl" class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex flex-col sm:flex-row gap-5">
+    <!-- 圖文選單連結：貼進 LINE 官方帳號的圖文選單按鈕，民眾點了才進到「這一檔」活動 -->
+    <div v-if="entryUrl" class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex flex-col gap-2">
       <div class="flex-1 min-w-0 flex flex-col gap-2">
         <h3 class="text-sm font-black text-gray-800 flex items-center gap-1.5">
           <LinkIcon class="w-4 h-4 text-emerald-600" />
-          活動入口
+          圖文選單連結
           <span
             class="px-2 py-0.5 rounded-full text-3xs font-bold"
             :class="
@@ -139,13 +130,19 @@ function doToggle() {
           </span>
         </h3>
         <p class="text-xs text-gray-400 leading-relaxed">
-          分享這個連結或 QR，對方開啟後會直接進入「{{ admin.activeCampaign?.title }}」的前台，不受目前預設活動影響。
+          連結為嵌入官方帳號圖文選單用
+        </p>
+        <p
+          v-if="!liffId"
+          class="text-2xs font-bold text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 leading-relaxed"
+        >
+          尚未設定 LIFF ID，目前產出的是一般網址，民眾不會經過 LINE 登入（同一個人換瀏覽器就會變成不同身分）。
         </p>
         <p
           v-if="entryStatus !== 'active'"
           class="text-2xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed"
         >
-          此活動{{ entryStatus === 'draft' ? '尚未啟用' : '已結束' }}，連結可以開啟預覽，但民眾此時無法集章。正式對外分享前，請先把活動狀態改成「進行中」。
+          此活動{{ entryStatus === 'draft' ? '尚未啟用' : '已結束' }}，連結可以開啟預覽，但民眾此時無法集章。貼上圖文選單前，請先把活動狀態改成「進行中」。
         </p>
         <p class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 break-all select-all">
           {{ entryUrl }}
@@ -158,18 +155,7 @@ function doToggle() {
             <Copy class="w-4 h-4" />
             複製連結
           </button>
-          <button
-            class="flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold rounded-xl text-xs transition-colors"
-            @click="downloadEntryQr"
-          >
-            <Download class="w-4 h-4" />
-            下載 QR
-          </button>
         </div>
-      </div>
-      <div class="shrink-0 self-center p-3 bg-white rounded-xl border border-gray-100">
-        <img v-if="entryQr" :src="entryQr" alt="活動入口 QR" class="w-32 h-32" />
-        <div v-else class="w-32 h-32 bg-gray-50 animate-pulse rounded" />
       </div>
     </div>
 
@@ -241,6 +227,9 @@ function doToggle() {
     <p class="text-xs text-gray-400 flex items-center gap-1.5">
       <Printer class="w-3.5 h-3.5" />
       也可用 npm run qrsheet 產生一張含全部 QR 的列印表。
+    </p>
+    <p v-if="liffId" class="text-xs text-gray-400 leading-relaxed">
+      QR 內容已改為 LINE LIFF 網址，掃到後會先經過 LINE 登入；LIFF 啟用前印製的舊 QR 需重印（站內掃描器兩種都能掃）。
     </p>
 
     <AdminConfirm

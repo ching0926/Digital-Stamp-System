@@ -33,6 +33,9 @@ export default defineNuxtConfig({
     adminPasscode: '',
     // 後台網域白名單，逗號分隔（如 admin.example.com）；留空 = 不啟用網域分離檢查
     adminHostnames: '',
+    // 驗 LINE ID token 用的 LINE Login channel ID（env: NUXT_LINE_CHANNEL_ID）；
+    // 留空 = 取 public.liffId 的前綴（LIFF ID 格式為 <channelId>-<hash>）
+    lineChannelId: '',
     // GPS 地理圍籬（型別由預設值推斷：boolean / number）
     geofenceEnforce: true,
     geofenceRadiusM: 300,
@@ -40,6 +43,10 @@ export default defineNuxtConfig({
       // 站台對外網址（env: NUXT_PUBLIC_SITE_URL）。後台產 QR 時用它組掃碼網址；
       // 留空則取後台當下的 origin——前後台分域部署時務必設定，否則會編到後台網域
       siteUrl: '',
+      // LINE LIFF app ID（env: NUXT_PUBLIC_LIFF_ID）。有值時前台會走 LINE 登入，
+      // 後台也會把活動入口與各點 QR 編成 https://liff.line.me/<id>?c= / ?s=；
+      // 留空 = 不啟用 LINE 登入，維持匿名訪客身分
+      liffId: '',
       // 前端 Google Maps JavaScript API key（env: NUXT_PUBLIC_GOOGLE_MAPS_API_KEY）
       googleMapsApiKey: '',
       // 前端是否需要抓 GPS 才送出集章（env: NUXT_PUBLIC_GEOFENCE_ENFORCE）

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { Award, Map as MapIcon, Gift, CheckCircle, Info, XCircle, X, AlertTriangle } from 'lucide-vue-next'
 import type { Station } from '~/stores/campaign'
+import type { ScanTarget } from '~/utils/scanTarget'
 
 const user = useUserStore()
 const campaign = useCampaignStore()
-const route = useRoute()
-const router = useRouter()
 
 type Tab = 'map' | 'card' | 'rewards'
 const activeTab = ref<Tab>('map')
@@ -15,18 +14,29 @@ const isScannerOpen = ref(false)
 const booting = ref(true)
 const bootError = ref<string | null>(null)
 
+// `?debug=1` 的診斷面板用。bootUrl 要在 clearQuery() 之前留一份，否則就看不到原始參數了
+const debugMode = ref(false)
+const debugTarget = ref<ScanTarget | null>(null)
+const bootUrl = ref('')
+
 // 進度浮卡的實際位置，用來決定清單抽屜要展開到哪
 const progressCardEl = ref<HTMLElement | null>(null)
 const listSheetTop = ref(108)
 
-// 外部相機掃碼落地後的結果橫幅
-const scanBanner = ref<{ tone: 'success' | 'info' | 'error'; text: string } | null>(null)
+// 掃碼後的結果橫幅。note 放「已切換至某某活動」這類附註
+const scanBanner = ref<{ tone: 'success' | 'info' | 'error'; text: string; note?: string } | null>(null)
 let bannerTimer: ReturnType<typeof setTimeout> | undefined
 
-function showScanBanner(tone: 'success' | 'info' | 'error', text: string) {
-  scanBanner.value = { tone, text }
+function showScanBanner(tone: 'success' | 'info' | 'error', text: string, note?: string) {
+  scanBanner.value = { tone, text, note }
   clearTimeout(bannerTimer)
   bannerTimer = setTimeout(() => (scanBanner.value = null), 5000)
+}
+
+// 掃碼換了活動就講一聲：地圖整個變樣、進度歸零，不說民眾會以為自己的章不見了
+function switchNote(): string | undefined {
+  const title = campaign.consumeSwitchNotice()
+  return title ? `已切換至「${title}」` : undefined
 }
 
 function selectStation(s: Station) {
@@ -49,53 +59,117 @@ function startScanning() {
   selectedStation.value = null
   openScanner()
 }
+// 站內掃到別檔活動的 QR 時，切換提示會被全螢幕掃描畫面蓋住，關掉才補跳
+function flushSwitchNotice() {
+  const note = switchNote()
+  if (note) showScanBanner('info', note)
+}
 // 掃到章之後從結果畫面跳去集章卡
 function goCardFromScanner() {
   isScannerOpen.value = false
   activeTab.value = 'card'
+  flushSwitchNotice()
+}
+function closeScanner() {
+  isScannerOpen.value = false
+  flushSwitchNotice()
+}
+
+// 清掉網址上的 `?c=` / `?s=`，避免重新整理又重送一次。
+// 不用 router.replace：LIFF 還原參數時繞過了 vue-router，router 認知的網址已經對不上
+function clearQuery() {
+  window.history.replaceState(window.history.state, '', window.location.pathname)
 }
 
 async function ensureAuth() {
   await user.fetchMe()
-  if (user.isAuthenticated) return
-  await user.login() // 無 session 時自動開一個匿名身分
+  const idToken = await useLiffIdToken() // 未登入時可能整頁導去 LINE 登入，不會 resolve
+
+  // 有 LINE 身分就一律送出：確保 session 對到的是這個 LINE 帳號（換瀏覽器時 cookie 可能
+  // 還指著另一個匿名身分），順便更新暱稱與頭像。
+  // 但 LINE 驗證失敗（後端回 401）不可以炸掉整個開站流程——那會讓畫面變成一片錯誤訊息，
+  // 連掃碼集章都輪不到執行。跟 useLiff 一樣的哲學：拿不到 LINE 身分就退回匿名
+  if (idToken) {
+    try {
+      await user.login(idToken)
+      return
+    } catch (err) {
+      console.warn('[liff] LINE 身分登入失敗，改用匿名身分', err)
+    }
+  }
+  if (!user.isAuthenticated) await user.login()
 }
 
-// 用手機內建相機掃 QR 會直接開 `/?s=<token>`，落地後自動集章並停在集章卡
-async function collectFromUrl() {
-  const token = extractQrToken(String(route.query.s ?? ''))
-  if (!token) return
+// 從 LINE／LIFF 導進來的跡象。用來分辨「使用者自己開首頁」與「掃碼進來但參數掉了」，
+// 後者一定要給訊息，否則就是使用者回報的那種「完全沒反應」
+function looksLikeLineArrival(): boolean {
+  if (/[?&]liff\./.test(window.location.search)) return true
+  try {
+    const host = new URL(document.referrer).hostname
+    // 完全相等或為其子網域，不用裸 endsWith（`evilline.me` 會過關）
+    return host === 'line.me' || host.endsWith('.line.me')
+  } catch {
+    return false // 沒有 referrer
+  }
+}
 
+// 用手機內建相機掃 QR 會直接開 `?s=<token>`，落地後自動集章並停在集章卡。
+// collect() 會順便把活動切成這張 QR 所屬的那一檔（成功或失敗都切）
+async function collectFromUrl(token: string) {
   activeTab.value = 'card'
-  // 參數留在網址上，重新整理會再送一次集章，先清掉
-  await router.replace({ query: {} })
 
   try {
     const res = await campaign.collect(token, await getStampGeo())
+    const note = switchNote()
     if (res.alreadyCollected) {
-      showScanBanner('info', `${res.stationName}：這個章你已經收集過了`)
+      showScanBanner('info', `${res.stationName}：這個章你已經收集過了`, note)
     } else {
-      showScanBanner('success', `集章成功！${res.stationName}`)
+      showScanBanner('success', `集章成功！${res.stationName}`, note)
       if (navigator.vibrate) navigator.vibrate([100, 50, 100])
     }
   } catch (err: unknown) {
     const e = err as { data?: { message?: string }; statusMessage?: string }
-    showScanBanner('error', e.data?.message ?? e.statusMessage ?? '集章失敗，請再試一次')
+    showScanBanner('error', e.data?.message ?? e.statusMessage ?? '集章失敗，請再試一次', switchNote())
   }
 }
 
 onMounted(async () => {
+  // 進站的第一件事：記下網址、解析、存起來。
+  // 下面的 ensureAuth() 可能整頁導去 LINE 登入（外部瀏覽器未登入時必定發生），
+  // 導回來時網址上的 `?s=` / `?c=` 可能就沒了。順序反過來就永遠救不回來
+  bootUrl.value = window.location.href
+  debugMode.value = new URLSearchParams(window.location.search).get('debug') === '1'
+  recordBoot(window.location.href)
+  const early = parseScanQuery(window.location.search)
+  if (early) stashScanTarget(early)
+
   try {
     await ensureAuth()
-    // `/?c=<campaignId>` 是後台產的活動入口連結；沒帶就沿用上次看的那一檔。
-    // 入口連結一律用 preview 載入，草稿才預覽得到、已結束的舊連結也才會
-    // 顯示「已結束」而不是默默換成另一檔活動
-    const entryCampaignId = String(route.query.c ?? '')
-    const hasScanToken = Boolean(route.query.s)
-    await campaign.load(entryCampaignId || undefined, { preview: Boolean(entryCampaignId) })
-    await collectFromUrl()
-    // collectFromUrl 只在有 ?s= 時才清網址，單獨用入口連結進來的要自己清
-    if (entryCampaignId && !hasScanToken) await router.replace({ query: {} })
+    // 一律取走暫存（就算這次用不到），避免殘留在下次進站時誤觸發集章。
+    // 網址上還讀得到就以網址為準——LIFF 會在 init 後把 `liff.state` 還原成真正的
+    // `?c=` / `?s=`，用的是 history.replaceState，vue-router 收不到通知
+    const stashed = takeScanTarget()
+    const target = parseScanQuery(window.location.search) ?? stashed
+    debugTarget.value = target
+    // 參數留在網址上，重新整理會再送一次，先清掉
+    if (target) clearQuery()
+
+    if (target?.kind === 'stamp') {
+      // 先集章、由回應決定載哪一檔活動。反過來先 load() 的話會先閃一次上次看的
+      // 活動，還多打一次 campaign/current
+      await collectFromUrl(target.token)
+    } else if (target?.kind === 'entry') {
+      // `?c=<campaignId>` 是後台產的活動入口連結，一律用 preview 載入：
+      // 草稿才預覽得到、已結束的舊連結也才會顯示「已結束」而不是默默換成另一檔活動
+      await campaign.load(target.campaignId, { preview: true })
+    } else if (looksLikeLineArrival()) {
+      // 從 LINE 進來卻解不出目標＝參數在導轉途中掉了。這裡絕不能靜默 return，
+      // 否則使用者看到的就是「掃了完全沒反應」，連哪裡出錯都無從得知。
+      // 用詞要讓「不是來集章的人」看了也不突兀（例如從 OA 圖文選單點進來）
+      showScanBanner('info', '若你剛才是掃描攤位 QR，這次沒有讀到集章資訊，請用下方的「掃描集章」再掃一次')
+    }
+    // 沒帶參數，或帶的參數集章失敗（QR 驗證失敗等）而沒載到任何活動時，退回上次看的那一檔
+    if (!campaign.loaded) await campaign.load()
   } catch (err: unknown) {
     const e = err as { data?: { message?: string }; statusMessage?: string }
     bootError.value = e.data?.message ?? e.statusMessage ?? '載入失敗，請稍後再試'
@@ -149,7 +223,7 @@ onBeforeUnmount(() => clearTimeout(bannerTimer))
       <!-- 外部相機掃碼落地的結果橫幅 -->
       <Transition enter-active-class="transition duration-300" enter-from-class="opacity-0 -translate-y-4" leave-active-class="transition duration-200" leave-to-class="opacity-0 -translate-y-4">
         <div
-          v-if="scanBanner && activeTab === 'card'"
+          v-if="scanBanner"
           class="absolute left-4 right-4 z-40 mx-auto max-w-2xl flex items-center gap-3 p-4 rounded-[24px] shadow-lg text-white"
           :class="[
             scanBanner.tone === 'success' ? 'bg-[#10B981]' : scanBanner.tone === 'info' ? 'bg-[#FF8C00]' : 'bg-red-500',
@@ -160,7 +234,10 @@ onBeforeUnmount(() => clearTimeout(bannerTimer))
             :is="scanBanner.tone === 'success' ? CheckCircle : scanBanner.tone === 'info' ? Info : XCircle"
             class="w-6 h-6 shrink-0"
           />
-          <p class="text-sm font-bold tracking-tight flex-1">{{ scanBanner.text }}</p>
+          <div class="flex-1">
+            <p class="text-sm font-bold tracking-tight">{{ scanBanner.text }}</p>
+            <p v-if="scanBanner.note" class="text-2xs font-bold text-white/85 mt-0.5">{{ scanBanner.note }}</p>
+          </div>
           <button class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center shrink-0" title="關閉" @click="scanBanner = null">
             <X class="w-4 h-4" />
           </button>
@@ -221,7 +298,10 @@ onBeforeUnmount(() => clearTimeout(bannerTimer))
       />
 
       <!-- 掃碼全螢幕 -->
-      <Scanner v-if="isScannerOpen" @close="isScannerOpen = false" @go-card="goCardFromScanner" />
+      <Scanner v-if="isScannerOpen" @close="closeScanner" @go-card="goCardFromScanner" />
     </template>
+
+    <!-- `?debug=1` 診斷面板。放在 v-else 之外，開站失敗時才也看得到 -->
+    <DebugPanel v-if="debugMode" :target="debugTarget" :boot-url="bootUrl" />
   </div>
 </template>

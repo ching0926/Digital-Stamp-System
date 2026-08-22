@@ -31,13 +31,16 @@ async function main() {
     order: 1,
   })
 
-  // QR 編的是掃碼網址（與後台一致），手機內建相機掃到就能開站集章
-  const base = (process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
+  // QR 編的是掃碼網址（與後台 AdminQrCodes.vue 一致）：有設 LIFF ID 就編 LIFF 網址，
+  // 掃到會先過 LINE 登入；沒設則退回站台網址
+  const liffId = process.env.NUXT_PUBLIC_LIFF_ID || ''
+  const siteBase = (process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
+  const base = liffId ? `https://liff.line.me/${liffId}` : `${siteBase}/`
 
   const cards: string[] = []
   for (const s of stations) {
     const token = makeQrToken(s._id.toString(), s.qrSecret)
-    const dataUrl = await QRCode.toDataURL(`${base}/?s=${token}`, { margin: 1, width: 260 })
+    const dataUrl = await QRCode.toDataURL(`${base}?s=${token}`, { margin: 1, width: 260 })
     cards.push(
       `<div class="card"><img src="${dataUrl}" alt="${s.name}"><div class="name">${s.name}</div></div>`,
     )

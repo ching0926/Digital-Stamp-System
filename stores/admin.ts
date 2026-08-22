@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 
-const KEY_STORAGE = 'jh_admin_key'
+// 舊版把「後台通行碼本身」明文存在這個 key。改用 httpOnly cookie 後已不再讀它，
+// 但仍要主動刪除，讓早已存在各裝置上的明文通行碼消失
+const LEGACY_KEY_STORAGE = 'jh_admin_key'
 
 export interface AdminCampaign {
   id: string
@@ -56,9 +58,10 @@ export interface AdminQrStation {
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({
-    // 通行碼。存 localStorage，重整後仍保持登入（同 /verify 的做法）
-    passcode: '' as string,
+    // 登入狀態由伺服器簽發的 httpOnly cookie 認定，前端只記「有沒有通過」。
+    // 通行碼刻意不留在這裡，也不進 localStorage
     authed: false,
+    checkingSession: true,
     campaigns: [] as AdminCampaign[],
     activeCampaignId: '' as string,
     stations: [] as AdminStation[],
@@ -75,46 +78,59 @@ export const useAdminStore = defineStore('admin', {
     },
   },
   actions: {
-    // 所有後台請求共用：帶上 x-admin-key，並在 401 時自動登出回通行碼畫面
+    // 所有後台請求共用。憑證是同源自動帶上的 httpOnly cookie，這裡不必加 header；
+    // 401（未登入或 session 過期）時自動退回通行碼畫面
     async request<T>(url: string, opts: Record<string, unknown> = {}): Promise<T> {
       try {
         // $fetch 會依路由推導回傳型別，泛型包裝時需明確斷言回 T
-        return (await $fetch(url, {
-          ...opts,
-          headers: { 'x-admin-key': this.passcode },
-        })) as T
+        return (await $fetch(url, opts)) as T
       } catch (err: unknown) {
         const e = err as { statusCode?: number; status?: number }
-        if (e.statusCode === 401 || e.status === 401) this.logout()
+        if (e.statusCode === 401 || e.status === 401) this.resetState()
         throw err
       }
     },
 
-    restoreSession() {
-      const saved = localStorage.getItem(KEY_STORAGE) ?? ''
-      if (saved) {
-        this.passcode = saved
+    // 開後台時確認 cookie 還有沒有效：直接試打一次 campaigns，成功就是還登入著。
+    // 不必為此多開一支 /api/admin/me
+    async restoreSession() {
+      this.checkingSession = true
+      // 舊版留在裝置上的明文通行碼，趁這時候清掉
+      try {
+        localStorage.removeItem(LEGACY_KEY_STORAGE)
+      } catch {
+        /* 無痕模式或封鎖 storage 時忽略 */
+      }
+      try {
+        await this.loadCampaigns()
         this.authed = true
+      } catch {
+        this.authed = false // 401 以外的錯誤（例如離線）也一樣回通行碼畫面，重試即可
+      } finally {
+        this.checkingSession = false
       }
     },
 
-    // 用一次 campaigns 查詢驗證通行碼是否正確，正確才寫入 localStorage
+    // 通行碼只在這一次送出，之後靠伺服器簽發的 cookie 認人
     async login(passcode: string) {
-      this.passcode = passcode.trim()
+      await $fetch('/api/admin/login', { method: 'POST', body: { passcode: passcode.trim() } })
       await this.loadCampaigns()
       this.authed = true
-      localStorage.setItem(KEY_STORAGE, this.passcode)
     },
 
-    logout() {
-      this.passcode = ''
+    async logout() {
+      // 先清 state：就算登出請求失敗，畫面也該立刻退回通行碼畫面
+      this.resetState()
+      await $fetch('/api/admin/logout', { method: 'POST' }).catch(() => {})
+    },
+
+    resetState() {
       this.authed = false
       this.campaigns = []
       this.stations = []
       this.rewards = []
       this.qrStations = []
       this.activeCampaignId = ''
-      localStorage.removeItem(KEY_STORAGE)
     },
 
     // === 活動 ===

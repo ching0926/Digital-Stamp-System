@@ -88,6 +88,9 @@ export const useCampaignStore = defineStore('campaign', {
     redemptions: [] as Redemption[],
     loading: false,
     loaded: false,
+    // 剛剛因為掃碼而換了一檔活動時，記下新活動標題供 UI 提示。
+    // 不提示的話畫面會整個變樣、進度歸零，民眾會以為自己的章不見了
+    switchedTitle: null as string | null,
   }),
   getters: {
     // 市集用自繪平面圖，商圈用 Google 地圖
@@ -144,26 +147,54 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
+    // 切到指定的活動，回傳「是否真的換了一檔」。
+    // 一律帶 preview：campaign/current 在不帶 preview 且該活動非 active 時會默默退回
+    // 最新一檔，那會讓掃了別檔 QR 的人又被彈回原本那檔，正是要修掉的症頭
+    async switchTo(campaignId: string): Promise<boolean> {
+      if (!campaignId || campaignId === this.campaignId) return false
+      // 「切換」= 這張 QR 把民眾帶離了他原本會看到的那一檔。用手機相機掃碼是整頁重載，
+      // 那時 this.campaignId 還是空的，所以要拿 localStorage 記著的來比；
+      // 第一次進站的人沒有「原本那一檔」，就不必提示
+      const previous = this.campaignId || readStoredCampaignId()
+      await this.load(campaignId, { preview: true })
+      if (previous && previous !== campaignId) this.switchedTitle = this.title
+      return true
+    },
+
+    // 取走切換提示（讀完即清），避免同一則提示重複跳
+    consumeSwitchNotice(): string | null {
+      const title = this.switchedTitle
+      this.switchedTitle = null
+      return title
+    },
+
     // 掃碼集章。回傳結果供 UI 顯示 toast。
     async collect(token: string, geo?: { lat: number; lng: number }) {
-      const res = await $fetch<{
-        ok: boolean
-        alreadyCollected: boolean
-        campaignId: string
-        stationName: string
-        collectedStationIds: string[]
-      }>('/api/stamp/collect', {
-        method: 'POST',
-        body: { token, lat: geo?.lat, lng: geo?.lng },
-      })
-      // 兩檔活動同時進行時，掃到別檔的 QR 就整個切過去。
-      // 不切的話章記在 A 活動、畫面停在 B，集章卡會顯示錯的點與進度。
-      if (res.campaignId && res.campaignId !== this.campaignId) {
-        await this.load(res.campaignId)
-      } else {
-        this.collectedStationIds = res.collectedStationIds
+      try {
+        const res = await $fetch<{
+          ok: boolean
+          alreadyCollected: boolean
+          campaignId: string
+          stationName: string
+          collectedStationIds: string[]
+        }>('/api/stamp/collect', {
+          method: 'POST',
+          body: { token, lat: geo?.lat, lng: geo?.lng },
+        })
+        // 兩檔活動同時進行時，掃到別檔的 QR 就整個切過去。
+        // 不切的話章記在 A 活動、畫面停在 B，集章卡會顯示錯的點與進度。
+        if (!(await this.switchTo(res.campaignId))) {
+          this.collectedStationIds = res.collectedStationIds
+        }
+        return res
+      } catch (err: unknown) {
+        // 集章失敗（此點無須集章、活動未進行中、圍籬擋下）也要切到 QR 所屬活動——
+        // 切換是「這張 QR 屬於哪一檔」決定的，跟集章成不成功無關。
+        // 後端把 campaignId 放在錯誤的 data 裡（server/api/stamp/collect.post.ts）
+        const cid = (err as { data?: { data?: { campaignId?: string } } }).data?.data?.campaignId
+        if (cid) await this.switchTo(cid)
+        throw err
       }
-      return res
     },
 
     // 現場核銷：工作人員在民眾手機上輸入通行碼確認，一次完成領取與核銷

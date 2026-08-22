@@ -7,7 +7,9 @@ const emit = defineEmits<{ close: []; goCard: [] }>()
 const campaign = useCampaignStore()
 
 const flashlight = ref(false)
-const errorToast = ref<string | null>(null)
+// 取景畫面上的提示。tone 決定是「集章失敗」還是單純的告知（如已在該活動）
+const toast = ref<{ tone: 'error' | 'info'; text: string } | null>(null)
+let toastTimer: ReturnType<typeof setTimeout> | undefined
 const cameraBlocked = ref(false)
 const processing = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -22,19 +24,25 @@ let ctx: CanvasRenderingContext2D | null = null
 let rafId = 0
 let lastDecodeAt = 0
 
-async function submitToken(raw: string) {
-  if (processing.value) return // 防止重複送出（同一張 QR 會連續解到多幀）
-  // QR 現在編的是網址，舊版印製的純 token 也要能掃
-  const token = extractQrToken(raw)
-  if (!token) {
-    // 鏡頭裡混到別的 QR。靠 toast 是否還在來節流，否則每一幀都會重設一次
-    if (!errorToast.value) {
-      errorToast.value = '這不是本活動的集章 QR'
-      setTimeout(() => (errorToast.value = null), 3000)
-    }
-    return
+function showToast(tone: 'error' | 'info', text: string) {
+  toast.value = { tone, text }
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = null), 3000)
+}
+
+// 掃到活動入口 QR：切到那一檔活動並關掉掃描器，切換提示由主畫面接手顯示
+async function handleEntry(campaignId: string) {
+  try {
+    if (await campaign.switchTo(campaignId)) emit('close')
+    else showToast('info', `你已經在「${campaign.title}」了`)
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } }
+    showToast('error', e.data?.message ?? '這個活動載入失敗，請再試一次')
   }
-  processing.value = true
+  processing.value = false
+}
+
+async function handleStamp(token: string) {
   try {
     const geo = await getStampGeo()
     const res = await campaign.collect(token, geo)
@@ -42,10 +50,23 @@ async function submitToken(raw: string) {
     if (!res.alreadyCollected && navigator.vibrate) navigator.vibrate([100, 50, 100])
   } catch (err: unknown) {
     const e = err as { data?: { message?: string }; statusMessage?: string }
-    errorToast.value = e.data?.message ?? e.statusMessage ?? '集章失敗，請再試一次'
-    setTimeout(() => (errorToast.value = null), 3000)
+    showToast('error', e.data?.message ?? e.statusMessage ?? '集章失敗，請再試一次')
     processing.value = false // 留在掃描畫面，允許直接重掃
   }
+}
+
+async function submitToken(raw: string) {
+  if (processing.value) return // 防止重複送出（同一張 QR 會連續解到多幀）
+  // QR 可能是集章網址、活動入口網址、LIFF 網址或舊版印製的純 token
+  const target = parseScanTarget(raw)
+  if (!target) {
+    // 鏡頭裡混到別的 QR。靠 toast 是否還在來節流，否則每一幀都會重設一次
+    if (!toast.value) showToast('error', '無法辨識這張 QR Code')
+    return
+  }
+  processing.value = true
+  if (target.kind === 'entry') await handleEntry(target.campaignId)
+  else await handleStamp(target.token)
 }
 
 // 關掉結果畫面回到取景狀態，繼續掃下一個點位
@@ -97,6 +118,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(rafId)
+  clearTimeout(toastTimer)
   stream?.getTracks().forEach((t) => t.stop())
 })
 
@@ -120,13 +142,20 @@ async function toggleFlashlight() {
   <div class="absolute inset-0 bg-black z-50 flex flex-col justify-between overflow-hidden">
     <!-- 錯誤 toast（留在取景畫面，可直接重掃）-->
     <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 -translate-y-6" leave-active-class="transition duration-200" leave-to-class="opacity-0 -translate-y-6">
-      <div v-if="errorToast" class="absolute top-16 left-4 right-4 z-50 flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-800 shadow-xl rounded-[24px]">
-        <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0">
-          <XCircle class="w-5 h-5" />
+      <div
+        v-if="toast"
+        class="absolute top-16 left-4 right-4 z-50 flex items-center gap-3 p-4 shadow-xl rounded-[24px] border"
+        :class="toast.tone === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-orange-50 border-orange-200 text-orange-900'"
+      >
+        <div
+          class="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0"
+          :class="toast.tone === 'error' ? 'bg-red-500' : 'bg-[#FF8C00]'"
+        >
+          <component :is="toast.tone === 'error' ? XCircle : Info" class="w-5 h-5" />
         </div>
         <div>
-          <p class="text-sm font-bold tracking-tight">集章失敗</p>
-          <p class="text-xs text-red-600 mt-0.5">{{ errorToast }}</p>
+          <p class="text-sm font-bold tracking-tight">{{ toast.tone === 'error' ? '集章失敗' : '提醒' }}</p>
+          <p class="text-xs mt-0.5" :class="toast.tone === 'error' ? 'text-red-600' : 'text-orange-700'">{{ toast.text }}</p>
         </div>
       </div>
     </Transition>

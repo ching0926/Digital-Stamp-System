@@ -22,11 +22,15 @@ export const useUserStore = defineStore('user', {
       return user
     },
 
-    // 本機測試登入（不需授權，直接取得測試帳號）
-    async login() {
+    // 帶 LINE ID token = 以 LINE 身分登入（跨瀏覽器都是同一個帳號）；
+    // 不帶 = 沿用／開一個匿名裝置身分
+    async login(idToken?: string) {
       this.loading = true
       try {
-        this.user = await $fetch<CurrentUser>('/api/auth/login', { method: 'POST' })
+        this.user = await $fetch<CurrentUser>('/api/auth/login', {
+          method: 'POST',
+          body: idToken ? { idToken } : {},
+        })
         return this.user
       } finally {
         this.loading = false

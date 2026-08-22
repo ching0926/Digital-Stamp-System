@@ -32,14 +32,8 @@ const loggingIn = ref(false)
 const loginError = ref('')
 
 onMounted(async () => {
-  admin.restoreSession()
-  if (admin.authed) {
-    try {
-      await admin.loadCampaigns()
-    } catch (err) {
-      showError(err, '載入活動失敗')
-    }
-  }
+  // restoreSession 內部就會試著載活動，成功即代表 cookie 還有效
+  await admin.restoreSession()
 })
 
 async function login() {
@@ -58,8 +52,8 @@ async function login() {
   }
 }
 
-function logout() {
-  admin.logout()
+async function logout() {
+  await admin.logout()
   activeTab.value = 'home'
   toast('已登出後台')
 }
@@ -121,8 +115,14 @@ watch(showMarketMapTab, (show) => {
 
 <template>
   <div class="h-[100dvh] bg-gray-50 text-gray-800 flex flex-col overflow-hidden">
+    <!-- 確認 cookie 是否還有效。沒有這段的話通行碼畫面會先閃一下才跳進後台 -->
+    <div v-if="admin.checkingSession" class="flex-1 flex flex-col items-center justify-center gap-4">
+      <div class="w-10 h-10 border-4 border-[#FF8C00]/20 border-t-[#FF8C00] rounded-full animate-spin" />
+      <p class="text-xs text-gray-400 font-bold">載入中…</p>
+    </div>
+
     <!-- 通行碼 gate -->
-    <div v-if="!admin.authed" class="flex-1 flex items-center justify-center p-6">
+    <div v-else-if="!admin.authed" class="flex-1 flex items-center justify-center p-6">
       <form
         class="w-full max-w-sm bg-white rounded-3xl shadow-xl p-7 flex flex-col gap-5"
         @submit.prevent="login"
